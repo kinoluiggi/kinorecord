@@ -976,34 +976,45 @@ function lazyLoad(id) {
    HOME
 ════════════════════════════════════════ */
 async function loadHome() {
-  // Last.fm
-  const [info, rt] = await Promise.all([
-    lfm({ method: 'user.getinfo' }),
-    lfm({ method: 'user.getrecenttracks', limit: 7, extended: 1 })
-  ]);
-  if (info.user) {
-    const u = info.user;
-    q('hs-scrobbles').textContent = (+u.playcount).toLocaleString();
-    const yrs = Math.floor((Date.now()/1000 - u.registered?.unixtime) / (365.25*86400));
-    q('hs-years').textContent = yrs;
-    q('sb-sub').textContent = (+u.playcount).toLocaleString()+' scrobbles';
-    if (u.image?.[2]?.['#text']) q('user-avatar').src = u.image[2]['#text'];
+  try {
+    const [info, rt] = await Promise.all([
+      lfm({ method: 'user.getinfo' }),
+      lfm({ method: 'user.getrecenttracks', limit: 7, extended: 1 })
+    ]);
+    if (info.user) {
+      const u = info.user;
+      const plays = +u.playcount || 0;
+      q('hs-scrobbles').textContent = plays.toLocaleString();
+      // registered can be {unixtime, '#text'} or just a number
+      const regTs = u.registered?.unixtime || u.registered || 0;
+      const yrs = Math.floor((Date.now()/1000 - +regTs) / (365.25*86400));
+      q('hs-years').textContent = yrs > 0 ? yrs : '—';
+      q('sb-sub').textContent = plays.toLocaleString()+' scrobbles';
+      if (u.image?.[2]?.['#text']) q('user-avatar').src = u.image[2]['#text'];
+    }
+    const tracks = Array.isArray(rt.recenttracks?.track)
+      ? rt.recenttracks.track
+      : rt.recenttracks?.track ? [rt.recenttracks.track] : [];
+    if (tracks.length) {
+      q('home-recent').innerHTML = tracks.slice(0,6).map((t,i) => {
+        const live = i===0 && t['@attr']?.nowplaying;
+        const when = live ? '<span class="live-dot"></span>' : (t.date ? timeAgo(t.date.uts) : '—');
+        const imgUrl = img(t);
+        const artist = t.artist?.['#text'] || t.artist?.name || '';
+        const qstr = `${artist} ${t.name}`;
+        return `<div class="recent-item" onclick="show('player');playYT('${esc(qstr)}','${esc(t.name)}','${esc(artist)}','')">
+          ${imgUrl?`<img class="ri-img" src="${imgUrl}" alt="">`:'<div class="ri-img"></div>'}
+          <div class="ri-info"><div class="ri-name">${t.name}</div><div class="ri-sub">${artist}</div></div>
+          <div class="ri-meta">${when}</div>
+        </div>`;
+      }).join('');
+    } else {
+      q('home-recent').innerHTML = '<div class="empty">Sin datos</div>';
+    }
+  } catch(e) {
+    console.error('loadHome error:', e);
+    q('home-recent').innerHTML = '<div class="empty">Error cargando Last.fm</div>';
   }
-  if (rt.recenttracks?.track) {
-    const tracks = rt.recenttracks.track;
-    q('home-recent').innerHTML = tracks.slice(0,6).map((t,i) => {
-      const live = i===0 && t['@attr']?.nowplaying;
-      const when = live ? '<span class="live-dot"></span>' : (t.date ? timeAgo(t.date.uts) : '—');
-      const imgUrl = img(t);
-      const qstr = `${t.artist?.['#text']||''} ${t.name}`;
-      return `<div class="recent-item" onclick="playYT('${esc(qstr)}','${esc(t.name)}','${esc(t.artist?.['#text']||'')}','')">
-        ${imgUrl?`<img class="ri-img" src="${imgUrl}" alt="">`:'<div class="ri-img"></div>'}
-        <div class="ri-info"><div class="ri-name">${t.name}</div><div class="ri-sub">${t.artist?.['#text']||''}</div></div>
-        <div class="ri-meta">${when}</div>
-      </div>`;
-    }).join('');
-  }
-
   // Discogs home preview
   loadDiscogsHomePreview();
 }
