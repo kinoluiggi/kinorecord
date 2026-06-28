@@ -455,7 +455,11 @@ select option{background:var(--bg3)}
   <section class="panel" id="panel-moodtime">
     <div class="ph"><div><h2>Mood por hora</h2><p>Qué escuchas tú normalmente a esta hora</p></div></div>
     <div class="pb">
-      <div id="mood-clock" style="margin-bottom:20px"></div>
+      <div id="mood-clock" style="margin-bottom:16px"></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="bg" id="mood-play" style="display:none" onclick="playMood(false)">▶ Reproducir todo</button>
+        <button class="bg" id="mood-shuf" style="display:none" onclick="playMood(true)">⇄ Aleatorio</button>
+      </div>
       <div id="mood-results"><div class="ld"><div class="sp"></div>analizando patrones…</div></div>
     </div>
   </section>
@@ -670,6 +674,8 @@ async function loadLoved(btn){
 }
 function renderTracks(tracks,loved,container){
   container=container||Q('pl-t');
+  if(!container)return;
+  if(container===Q('pl-t')) kpSetList(tracks);
   if(!tracks.length){container.innerHTML='<div class="empty">Sin resultados</div>';return;}
   container.innerHTML='<div class="tl">'+tracks.map(function(t,i){
     var imgUrl=getImg(t);
@@ -779,13 +785,7 @@ function playIslaShuffle() {
 }
 
 // Override renderTracks to update transport list
-var _origRenderTracks = renderTracks;
-function renderTracks(tracks, loved, container) {
-  if (!container || container === Q('pl-t')) {
-    kpSetList(tracks);
-  }
-  _origRenderTracks(tracks, loved, container);
-}
+// renderTracks integrated with kpSetList directly
 
 async function timeMachine(){
   var val=Q('dt-d').value;if(!val)return;
@@ -1487,7 +1487,10 @@ async function loadMoodTime() {
     }
     hourTrackList = hourTrackList.slice(0, 20);
     if (!hourTrackList.length) { el.innerHTML = '<div class="empty">Sin suficientes datos para esta hora</div>'; return; }
-    el.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-bottom:14px;font-family:Space Mono,monospace">' + hourTracks.length + ' scrobbles encontrados entre las ' + (hour-1) + ':00 y las ' + (hour+1) + ':00 · ' + hourTrackList.length + ' tracks</div>' +
+    _moodTracks = hourTrackList.map(function(t){ return { name: t.name, artist: { name: t.artist, '#text': t.artist }, playcount: t.count||'' }; });
+  var mp = Q('mood-play'), ms = Q('mood-shuf');
+  if (mp) mp.style.display = ''; if (ms) ms.style.display = '';
+  el.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-bottom:14px;font-family:Space Mono,monospace">' + hourTracks.length + ' scrobbles encontrados entre las ' + (hour-1) + ':00 y las ' + (hour+1) + ':00 · ' + hourTrackList.length + ' tracks</div>' +
       '<div class="tl">' + hourTrackList.map(function(t, i) {
         var q2 = t.artist + ' ' + t.name;
         return '<div class="ti" onclick="show(\'player\');playYT(\''+esc(q2)+'\',\''+esc(t.name)+'\',\''+esc(t.artist)+'\',\''+label+'\')">'+ 
@@ -1501,6 +1504,7 @@ async function loadMoodTime() {
 
 // ── DISCOVERY PLAY ───────────────────────────
 var _discTracks = [];
+var _moodTracks = [];
 var _forgTracks = [];
 var _crossTracks = [];
 
@@ -1529,6 +1533,16 @@ function playCrossover() {
   renderTracks(_crossTracks.slice(), false, Q('pl-t'));
   kpSetList(_crossTracks.slice());
   kpPlayAt(0);
+}
+
+function playMood(shuf) {
+  if (!_moodTracks.length) return;
+  show('player');
+  var list = shuf ? shuffle(_moodTracks.slice()) : _moodTracks.slice();
+  renderTracks(list, false, Q('pl-t'));
+  kpSetList(list);
+  kpPlayAt(0);
+  if (shuf) { _kpShuf = true; var b = Q('kp-shuf'); if(b){b.classList.add('on');b.textContent='⇄ ON';} }
 }
 
 loadHome();
