@@ -796,8 +796,8 @@ select option { background: var(--bg3); }
     </div>
     <div class="panel-body">
       <div class="ia-key-row">
-        <div class="f"><label>Anthropic API Key</label><input type="password" id="ant-key" placeholder="sk-ant-…" style="width:100%"></div>
-        <button class="btn-ghost" onclick="toggleKey()">👁</button>
+        <div class="f"><label>Anthropic API Key <span style="color:var(--text3);font-weight:400">(se guarda en tu navegador)</span></label><input type="text" id="ant-key" placeholder="sk-ant-…" style="width:100%;font-family:'Space Mono',monospace;font-size:12px" autocomplete="off" spellcheck="false"></div>
+        <button class="btn-ghost" onclick="clearAntKey()" title="Borrar key guardada">✕</button>
       </div>
       <div class="ia-grid">
         <div><label>Período</label>
@@ -827,6 +827,16 @@ select option { background: var(--bg3); }
         <button class="btn-ghost on" onclick="loadIsla('overall',this)">Histórico</button>
         <button class="btn-ghost" onclick="loadIsla('12month',this)">12 meses</button>
         <button class="btn-ghost" onclick="loadIsla('3month',this)">3 meses</button>
+        <div class="ctrl-sep"></div>
+        <button class="btn-ghost" onclick="exportIslaLinks()" id="isla-export-btn" style="display:none">↗ Links YouTube</button>
+        <button class="btn-ghost" onclick="playIslaAll()" id="isla-play-btn" style="display:none">▶ Reproducir todo</button>
+      </div>
+      <div id="isla-export-box" style="display:none;margin-bottom:16px;background:var(--bg3);border:1px solid var(--border);padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span style="font-size:11px;color:var(--text2);font-family:Space Mono,monospace">LINKS — ISLA DESIERTA</span>
+          <button class="btn-ghost" onclick="copyIslaLinks()" id="isla-copy-btn">Copiar todo</button>
+        </div>
+        <textarea id="isla-links-text" readonly style="width:100%;height:160px;font-size:11px;font-family:Space Mono,monospace;resize:none;background:var(--bg4);border:none;color:var(--text2);padding:8px;line-height:1.8"></textarea>
       </div>
       <div class="isla-layout">
         <div>
@@ -1125,11 +1135,12 @@ function randomDate() {
 /* ════════════════════════════════════════
    IA PLAYLIST
 ════════════════════════════════════════ */
-function toggleKey() { const i=q('ant-key'); i.type = i.type==='password'?'text':'password'; }
+function clearAntKey() { localStorage.removeItem("ant_key"); const i=q("ant-key"); if(i) i.value=""; }
 
 async function genPlaylist() {
-  const apiKey = q('ant-key').value.trim();
-  if (!apiKey) { alert('Ingresa tu Anthropic API key'); return; }
+  const apiKey = q("ant-key")?.value?.trim() || localStorage.getItem("ant_key") || "";
+  if (!apiKey) { const i=q("ant-key"); if(i){i.focus();i.style.borderColor="var(--red)";setTimeout(()=>i.style.borderColor="",2000);} return; }
+  localStorage.setItem("ant_key", apiKey);
   const period = q('ia-period').value;
   const mood   = q('ia-mood').value;
   const extra  = q('ia-extra').value;
@@ -1229,6 +1240,47 @@ async function loadIsla(period, btn) {
     </div>`;
   }).join('')}</div>`;
   drawStars(islaData);
+  // Show export/play buttons
+  const eb = q('isla-export-btn'); if(eb) eb.style.display='';
+  const pb = q('isla-play-btn');  if(pb) pb.style.display='';
+  // Hide export box when reloading
+  const box = q('isla-export-box'); if(box) box.style.display='none';
+}
+
+function exportIslaLinks() {
+  const box = q('isla-export-box');
+  if (!islaData.length) return;
+  if (box.style.display !== 'none') { box.style.display='none'; return; }
+  const lines = islaData.map((t,i) => {
+    const artist = t.artist?.name||'';
+    const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(artist+' '+t.name)}`;
+    return `${i+1}. ${t.name} — ${artist}
+   ${url}`;
+  }).join('
+
+');
+  q('isla-links-text').value = lines;
+  box.style.display = 'block';
+}
+
+function copyIslaLinks() {
+  const ta = q('isla-links-text');
+  ta.select();
+  document.execCommand('copy');
+  const btn = q('isla-copy-btn');
+  btn.textContent = '✓ Copiado';
+  setTimeout(()=>btn.textContent='Copiar todo', 2000);
+}
+
+function playIslaAll() {
+  if (!islaData.length) return;
+  // Play first track, queue is conceptual via YouTube search sequence
+  const t = islaData[0];
+  const artist = t.artist?.name||'';
+  playYT(`${artist} ${t.name}`, t.name, artist, `${t.playcount}×`);
+  show('player');
+  // Also load isla tracks into player
+  renderTracks(islaData.map(t=>({...t, artist:{name:t.artist?.name||''}})), q('pl-tracks'), false);
 }
 
 function drawStars(data) {
@@ -1584,6 +1636,8 @@ async function initWantlist() {
    INIT
 ════════════════════════════════════════ */
 loadHome();
+// Restore saved keys
+const _ak = localStorage.getItem("ant_key"); if(_ak){ const _i=document.getElementById("ant-key"); if(_i) _i.value=_ak; }
 </script>
 </body>
 </html>
