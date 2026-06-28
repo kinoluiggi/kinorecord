@@ -179,7 +179,7 @@ select option{background:var(--bg3)}
 .vlbl img{width:100%;height:100%;object-fit:cover;border-radius:50%}
 .vlbl-fb{width:100%;height:100%;background:#2a1a0e;display:flex;align-items:center;justify-content:center;font-size:26px}
 .vhole{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:10px;height:10px;border-radius:50%;background:#0a0a0a;z-index:2}
-.varm{position:absolute;top:8px;right:8px;width:100px;height:140px;transform-origin:80px 24px;transition:transform 1.2s ease}
+.varm{position:absolute;top:8px;right:8px;width:100px;height:140px;transform-origin:80px 24px;transform:rotate(-18deg)}
 .vrpm{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:9px;font-family:'Space Mono',monospace;color:#333;letter-spacing:1px}
 .vmr{display:flex;flex-direction:column;background:#111;border-left:1px solid #1e1e1e;overflow:hidden}
 .vcs{display:flex;align-items:center;gap:12px;padding:16px 16px 12px;border-bottom:1px solid #1e1e1e;flex-shrink:0}
@@ -236,7 +236,7 @@ select option{background:var(--bg3)}
       <a class="al" onclick="show('home')" data-p="home"><span class="ico">⬛</span><span>Dashboard</span></a>
       <a onclick="show('player')" data-p="player"><span class="ico">▶</span><span>KinoPlayer</span></a>
       <a onclick="show('timemachine')" data-p="timemachine"><span class="ico">◷</span><span>Máquina del Tiempo</span></a>
-      <a onclick="show('ia')" data-p="ia"><span class="ico">✦</span><span>Playlist IA</span></a>
+      <a onclick="show('ia')" data-p="ia"><span class="ico">✦</span><span>Radio KinoRecord</span></a>
       <a onclick="show('isla')" data-p="isla"><span class="ico">♥</span><span>Isla Desierta</span></a>
       <a onclick="show('retrovisor')" data-p="retrovisor"><span class="ico">⟳</span><span>Retrovisor</span></a>
     </div>
@@ -276,6 +276,15 @@ select option{background:var(--bg3)}
         <div class="ytp" id="ytp"><span style="font-size:36px;opacity:.2">▷</span><span style="font-size:12px;color:var(--text3)">Elige un track de la lista</span></div>
         <div id="yte" style="width:100%;height:100%;position:absolute;top:0;left:0"></div>
       </div>
+      <!-- KinoPlayer transport controls -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);max-width:640px">
+        <button class="bg" onclick="kpPrev()" title="Anterior">⏮</button>
+        <button class="bg on" id="kp-playbtn" onclick="kpToggle()" title="Play/Pausa" style="min-width:60px">⏸ Play</button>
+        <button class="bg" onclick="kpNext()" title="Siguiente">⏭ Sig</button>
+        <div class="csep"></div>
+        <button class="bg" id="kp-shuf" onclick="kpShuffle()" title="Aleatorio">⇄ Shuffle</button>
+        <span id="kp-status" style="font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;margin-left:4px"></span>
+      </div>
       <div class="cr">
         <span style="font-size:11px;color:var(--text3)">Período:</span>
         <button class="bg on" onclick="loadTracks('7day',this)">7d</button>
@@ -285,6 +294,7 @@ select option{background:var(--bg3)}
         <button class="bg" onclick="loadTracks('overall',this)">Todo</button>
         <div class="csep"></div>
         <button class="bg" onclick="loadLoved(this)">♥ Loved</button>
+
       </div>
       <div id="pl-t"><div class="ld"><div class="sp"></div>cargando…</div></div>
     </div>
@@ -302,19 +312,49 @@ select option{background:var(--bg3)}
 
   <!-- IA / PLAYLIST -->
   <section class="panel" id="panel-ia">
-    <div class="ph"><div><h2>Playlist IA</h2><p>Genera un prompt con tu historial real para pegarlo en Claude</p></div></div>
+    <div class="ph"><div><h2>Radio KinoRecord</h2><p>Reproduce tu historial en secuencia automática</p></div></div>
     <div class="pb">
-      <div style="background:var(--bg3);border:1px solid var(--border);padding:18px;margin-bottom:22px;display:flex;gap:14px">
-        <span style="font-size:22px;flex-shrink:0">💡</span>
-        <div><div style="font-size:13px;font-weight:600;margin-bottom:4px">¿Cómo funciona?</div><div style="font-size:12px;color:var(--text2);line-height:1.6">KinoRecord consulta tu historial real de Last.fm y arma un prompt detallado. Lo copias con un clic y lo pegas en <a href="https://claude.ai" target="_blank" style="color:var(--red)">claude.ai</a> — Claude te genera la playlist narrativa ahí.</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-family:'Space Mono',monospace;text-transform:uppercase;margin-bottom:6px">Fuente</div>
+          <select id="radio-src" style="width:100%" onchange="radioLoad()">
+            <option value="top7">Top tracks — 7 días</option>
+            <option value="top1m" selected>Top tracks — 1 mes</option>
+            <option value="top3m">Top tracks — 3 meses</option>
+            <option value="top12m">Top tracks — 12 meses</option>
+            <option value="topall">Top tracks — histórico</option>
+            <option value="loved">♥ Loved tracks</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--text3);font-family:'Space Mono',monospace;text-transform:uppercase;margin-bottom:6px">Modo</div>
+          <div style="display:flex;gap:6px">
+            <button class="bg on" id="radio-seq" onclick="setRadioMode('seq',this)">▶ Secuencia</button>
+            <button class="bg" id="radio-shuf" onclick="setRadioMode('shuf',this)">⇄ Aleatorio</button>
+          </div>
+        </div>
       </div>
-      <div class="ia-g">
-        <div><label>Período</label><select id="ia-p"><option value="7day">7 días</option><option value="1month" selected>1 mes</option><option value="3month">3 meses</option><option value="12month">12 meses</option><option value="overall">Histórico</option></select></div>
-        <div><label>Mood / contexto</label><input type="text" id="ia-m" placeholder="ej: tarde de jazz, madrugada, sesión de trabajo"></div>
-        <div class="full"><label>Instrucciones adicionales</label><textarea id="ia-x" placeholder="ej: quiero descubrimientos de mi historial que raramente reproduzco"></textarea></div>
+      <!-- Radio Now Playing -->
+      <div style="background:var(--bg3);border:1px solid var(--border);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px">
+        <div class="spec" id="radio-spec"><div class="sb2" style="height:4px"></div><div class="sb2" style="height:14px"></div><div class="sb2" style="height:9px"></div><div class="sb2" style="height:18px"></div><div class="sb2" style="height:7px"></div></div>
+        <div style="flex:1;min-width:0">
+          <div id="radio-track" style="font-size:14px;font-weight:600;font-family:'Space Grotesk',sans-serif;color:var(--text3)">Cargando radio…</div>
+          <div id="radio-artist" style="font-size:11px;color:var(--text2)"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-shrink:0">
+          <button class="bg" onclick="radioPrev()">⏮</button>
+          <button class="bg on" id="radio-playbtn" onclick="radioToggle()">⏸</button>
+          <button class="bg" onclick="radioNext()">⏭</button>
+        </div>
       </div>
-      <button class="btn" id="ia-btn" onclick="buildPrompt()">✦ Generar prompt para Claude</button>
-      <div id="ia-r"></div>
+      <!-- Radio YT embed -->
+      <div style="background:#000;aspect-ratio:16/9;max-width:640px;position:relative;border:1px solid var(--border);margin-bottom:16px">
+        <div id="radio-ph" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:13px">Cargando…</div>
+        <div id="radio-yt" style="position:absolute;inset:0"></div>
+      </div>
+      <!-- Radio queue -->
+      <div style="font-size:10px;color:var(--text3);font-family:'Space Mono',monospace;text-transform:uppercase;margin-bottom:10px">Cola de reproducción</div>
+      <div id="radio-queue" style="max-height:300px;overflow-y:auto"><div class="ld"><div class="sp"></div>cargando…</div></div>
     </div>
   </section>
 
@@ -329,6 +369,7 @@ select option{background:var(--bg3)}
         <div class="csep"></div>
         <button class="bg" id="iexp" style="display:none" onclick="exportIsla()">↗ Links YouTube</button>
         <button class="bg" id="iplay" style="display:none" onclick="playIslaAll()">▶ Reproducir todo</button>
+        <button class="bg" id="ishuffle" style="display:none" onclick="playIslaShuffle()">⇄ Shuffle</button>
       </div>
       <div id="ibox" style="display:none;background:var(--bg3);border:1px solid var(--border);padding:14px;margin-bottom:16px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span style="font-size:11px;color:var(--text2);font-family:'Space Mono',monospace">LINKS — ISLA DESIERTA</span><button class="bg" onclick="copyIsla()" id="icopy">Copiar todo</button></div>
@@ -388,6 +429,7 @@ select option{background:var(--bg3)}
           <button class="vbtn" onclick="vPrev()">⏮</button>
           <button class="vbtn play" id="vplbtn" onclick="vToggle()">▶</button>
           <button class="vbtn" onclick="vNext()">⏭</button>
+          <button class="vbtn" id="vshuf" onclick="vToggleShuffle()" title="Aleatorio" style="font-size:13px;color:#555">⇄</button>
           <a class="vyta" id="vyta" href="#" target="_blank">↗ YT</a>
         </div>
       </div>
@@ -403,10 +445,10 @@ var YTK='AIzaSyBhlbmPq4k5sAuCSXP3SnRaUi546UVdS54';
 var dgT=localStorage.getItem('dg_token')||'';
 var colAll=[],colFil=[],islaD=[],lovedS=new Set();
 var colPg=1,PPG=50;
-var vTracks=[],vIdx=0,vPlaying=false,vTimer=null,vRelease=null;
+var vTracks=[],vIdx=0,vPlaying=false,vTimer=null,vRelease=null,vShuffleOn=false,vOrder=[];
 
 var Q=function(id){return document.getElementById(id);};
-var esc=function(s){return String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");};
+var esc=function(s){return String(s||'').replace(/'/g,"'");};
 var timeAgo=function(ts){
   var d=Date.now()/1000-ts;
   if(d<60)return'ahora';if(d<3600)return~~(d/60)+'m';
@@ -482,6 +524,7 @@ function lazyLoad(id){
   if(id==='timemachine'){var d=Q('dt-d');if(!d.value){var dt=new Date();dt.setFullYear(dt.getFullYear()-5);d.value=dt.toISOString().split('T')[0];}}
   if(id==='collection')initCol();
   if(id==='wantlist')initWL();
+  if(id==='ia')radioLoad();
 }
 
 async function loadHome(){
@@ -574,6 +617,108 @@ function renderTracks(tracks,loved,container){
   }).join('')+'</div>';
 }
 
+// ── KINOPLAYER TRANSPORT ─────────────────────
+var _kpList = [];
+var _kpIdx = 0;
+var _kpShuf = false;
+var _kpPlaying = false;
+
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+  }
+  return a;
+}
+
+function kpSetList(tracks) {
+  _kpList = tracks.slice();
+  _kpIdx = 0;
+  _kpPlaying = false;
+  updateKpBtn();
+}
+
+function kpPlayAt(idx) {
+  if (!_kpList.length) return;
+  _kpIdx = idx;
+  var t = _kpList[idx];
+  var artist = (t.artist && (t.artist.name || t.artist['#text'])) || '';
+  var plays = t.playcount ? t.playcount + '×' : '';
+  playYT(artist + ' ' + t.name, t.name, artist, plays);
+  _kpPlaying = true;
+  updateKpBtn();
+  // highlight row
+  document.querySelectorAll('#pl-t .ti').forEach(function(el, i) { el.classList.toggle('now', i === idx); });
+  var cur = document.querySelectorAll('#pl-t .ti')[idx];
+  if (cur) cur.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  // update status
+  var st = Q('kp-status');
+  if (st) st.textContent = (_kpIdx + 1) + ' / ' + _kpList.length;
+}
+
+function kpToggle() {
+  if (!_kpList.length) return;
+  if (!_kpPlaying) {
+    _kpPlaying = true;
+    kpPlayAt(_kpIdx);
+  } else {
+    _kpPlaying = false;
+    updateKpBtn();
+  }
+}
+
+function kpNext() {
+  if (!_kpList.length) return;
+  var next = _kpShuf
+    ? Math.floor(Math.random() * _kpList.length)
+    : (_kpIdx + 1) % _kpList.length;
+  kpPlayAt(next);
+}
+
+function kpPrev() {
+  if (!_kpList.length) return;
+  kpPlayAt((_kpIdx - 1 + _kpList.length) % _kpList.length);
+}
+
+function kpShuffle() {
+  _kpShuf = !_kpShuf;
+  var btn = Q('kp-shuf');
+  if (btn) { btn.classList.toggle('on', _kpShuf); btn.textContent = _kpShuf ? '⇄ ON' : '⇄ Shuffle'; }
+  if (_kpShuf && _kpList.length) {
+    _kpList = shuffle(_kpList);
+    _kpIdx = 0;
+    renderTracks(_kpList, false);
+    kpPlayAt(0);
+  }
+}
+
+function updateKpBtn() {
+  var btn = Q('kp-playbtn');
+  if (btn) btn.textContent = _kpPlaying ? '⏸ Pausa' : '▶ Play';
+}
+
+// Isla & Retro shuffle helpers
+function playIslaShuffle() {
+  if (!islaD.length) return;
+  show('player');
+  var sh = shuffle(islaD.slice());
+  renderTracks(sh, false, Q('pl-t'));
+  kpSetList(sh);
+  kpPlayAt(0);
+  _kpShuf = true;
+  var btn = Q('kp-shuf'); if (btn) { btn.classList.add('on'); btn.textContent = '⇄ ON'; }
+}
+
+// Override renderTracks to update transport list
+var _origRenderTracks = renderTracks;
+function renderTracks(tracks, loved, container) {
+  if (!container || container === Q('pl-t')) {
+    kpSetList(tracks);
+  }
+  _origRenderTracks(tracks, loved, container);
+}
+
 async function timeMachine(){
   var val=Q('dt-d').value;if(!val)return;
   var d=new Date(val+'T00:00:00');
@@ -601,10 +746,10 @@ async function timeMachine(){
       var time=t.date&&t.date['#text']?(t.date['#text'].split(',')[1]||'').trim():'';
       var loved=t.loved==='1'?'<span class="tl2">♥</span>':'';
       var q2=artist+' '+t.name;
-      return '<div class="ti" onclick="playYT(\''+esc(q2)+'\',\''+esc(t.name)+'\',\''+esc(artist)+'\',\'\')">'+
+      return '<div class="ti" onclick="show(\'player\');playYT(\''+esc(q2)+'\'\',\''+esc(t.name)+'\'\',\''+esc(artist)+'\'\',\'\')">'+ 
         '<span class="tn">'+(i+1)+'</span>'+(imgUrl?'<img class="ti2" src="'+imgUrl+'" alt="">':'<div class="ti2"></div>')+
         '<div style="flex:1;min-width:0"><div class="ti-n">'+t.name+'</div><div class="ti-a">'+artist+'</div></div>'+
-        loved+'<span class="tp" style="font-size:10px">'+time+'</span></div>';
+        loved+'<span class="tp" style="font-size:10px;color:var(--text3)">'+time+'</span>'+'<span style="font-size:11px;color:var(--text3);margin-left:8px;opacity:.5">▶</span></div>';
     }).join('')+'</div>';
 }
 function randomDate(){
@@ -612,6 +757,83 @@ function randomDate(){
   var r=new Date(s.getTime()+Math.random()*(e.getTime()-s.getTime()));
   Q('dt-d').value=r.toISOString().split('T')[0];timeMachine();
 }
+
+// ── RADIO KINORECORD ─────────────────────────
+var radioTracks=[], radioIdx=0, radioPlaying=true, radioMode='seq';
+
+async function radioLoad(){
+  var src=Q('radio-src')&&Q('radio-src').value||'top1m';
+  Q('radio-queue').innerHTML='<div class="ld"><div class="sp"></div>cargando…</div>';
+  var data;
+  try{
+    if(src==='loved'){
+      data=await lfm({method:'user.getlovedtracks',limit:50});
+      radioTracks=(data.lovedtracks&&data.lovedtracks.track?data.lovedtracks.track:[]);
+    }else{
+      var pmap={'top7':'7day','top1m':'1month','top3m':'3month','top12m':'12month','topall':'overall'};
+      data=await lfm({method:'user.gettoptracks',period:pmap[src]||'1month',limit:50});
+      radioTracks=(data.toptracks&&data.toptracks.track?data.toptracks.track:[]);
+    }
+    if(radioMode==='shuf') radioTracks=shuffle(radioTracks.slice());
+    radioIdx=0;
+    renderRadioQueue();
+    radioPlayCurrent();
+  }catch(e){Q('radio-queue').innerHTML='<div class="empty">Error cargando</div>';}
+}
+
+function setRadioMode(mode,btn){
+  radioMode=mode;
+  document.querySelectorAll('#panel-ia .bg').forEach(function(b){b.classList.remove('on');});
+  if(btn)btn.classList.add('on');
+  if(mode==='shuf'&&radioTracks.length){radioTracks=shuffle(radioTracks.slice());radioIdx=0;renderRadioQueue();radioPlayCurrent();}
+}
+
+function renderRadioQueue(){
+  if(!radioTracks.length){Q('radio-queue').innerHTML='<div class="empty">Sin tracks</div>';return;}
+  Q('radio-queue').innerHTML='<div class="tl">'+radioTracks.map(function(t,i){
+    var imgUrl=getImg(t);
+    var artist=(t.artist&&(t.artist.name||t.artist['#text']))||'';
+    var plays=t.playcount?t.playcount+'×':'♥';
+    return '<div class="ti'+(i===radioIdx?' now':'')+'" id="rq-'+i+'" onclick="radioJump('+i+')">'+
+      '<span class="tn">'+(i+1)+'</span>'+
+      (imgUrl?'<img class="ti2" src="'+imgUrl+'" alt="">':'<div class="ti2"></div>')+
+      '<div style="flex:1;min-width:0"><div class="ti-n">'+t.name+'</div><div class="ti-a">'+artist+'</div></div>'+
+      '<span class="tp">'+plays+'</span></div>';
+  }).join('')+'</div>';
+}
+
+async function radioPlayCurrent(){
+  if(!radioTracks.length)return;
+  var t=radioTracks[radioIdx];
+  var artist=(t.artist&&(t.artist.name||t.artist['#text']))||'';
+  Q('radio-track').textContent=t.name;Q('radio-artist').textContent=artist;
+  Q('radio-track').style.color='var(--text)';
+  Q('radio-spec').classList.add('pl');
+  // highlight queue
+  document.querySelectorAll('.tl .ti').forEach(function(el){el.classList.remove('now');});
+  var cur=Q('rq-'+radioIdx);if(cur){cur.classList.add('now');cur.scrollIntoView({block:'nearest',behavior:'smooth'});}
+  Q('radio-ph').style.display='flex';Q('radio-yt').innerHTML='';
+  try{
+    var vid=await ytSearch(artist+' '+t.name);
+    if(vid){
+      Q('radio-ph').style.display='none';
+      Q('radio-yt').innerHTML='<iframe src="https://www.youtube.com/embed/'+vid+'?autoplay=1&rel=0" allow="autoplay;encrypted-media" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%;border:none"></iframe>';
+    }else{
+      Q('radio-ph').textContent='Sin video en YouTube';
+    }
+  }catch(e){Q('radio-ph').textContent='Error al buscar';}
+  radioPlaying=true;updateRadioBtn();
+}
+
+function radioJump(idx){radioIdx=idx;radioPlayCurrent();}
+function radioNext(){if(!radioTracks.length)return;radioIdx=(radioIdx+1)%radioTracks.length;renderRadioQueue();radioPlayCurrent();}
+function radioPrev(){if(!radioTracks.length)return;radioIdx=(radioIdx-1+radioTracks.length)%radioTracks.length;renderRadioQueue();radioPlayCurrent();}
+function radioToggle(){
+  radioPlaying=!radioPlaying;updateRadioBtn();
+  Q('radio-spec').classList.toggle('pl',radioPlaying);
+  if(radioPlaying&&radioTracks.length&&!Q('radio-yt').querySelector('iframe'))radioPlayCurrent();
+}
+function updateRadioBtn(){var b=Q('radio-playbtn');if(b)b.textContent=radioPlaying?'⏸':'▶';}
 
 async function buildPrompt(){
   var period=Q('ia-p').value,mood=Q('ia-m').value,extra=Q('ia-x').value;
@@ -728,8 +950,9 @@ async function loadRetroY(year,btn){
   var tracks=(data.recenttracks&&data.recenttracks.track?(Array.isArray(data.recenttracks.track)?data.recenttracks.track:[data.recenttracks.track]):[]).filter(function(t){return t.date;});
   if(!tracks.length){el.innerHTML='<div class="empty">🌌 Sin scrobbles el '+d.toLocaleDateString('es-MX',{day:'numeric',month:'long'})+' de '+year+'</div>';return;}
   var dl=d.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  var shuffled=tracks.slice();
   var curY=new Date().getFullYear();
-  el.innerHTML='<div style="margin-bottom:14px"><span class="tag v">'+dl+'</span><span style="font-size:11px;color:var(--text2);margin-left:8px">'+tracks.length+' scrobbles</span></div>'+
+  el.innerHTML='<div style="margin-bottom:14px;display:flex;align-items:center;gap:10px"><span class="tag v">'+dl+'</span><span style="font-size:11px;color:var(--text2)">'+tracks.length+' scrobbles</span><button class="bg" style="margin-left:auto" onclick="playRetroShuffle('+year+')">⇄ Shuffle</button></div>'+
     '<div class="rtg"><div class="rc"><div class="rch"><span class="rcy">'+year+'</span><span class="rca">hace '+(curY-year)+' años</span></div>'+
     tracks.slice(0,12).map(function(t,i){
       var imgUrl=getImg(t);var artist=(t.artist&&t.artist['#text'])||'';
@@ -778,7 +1001,7 @@ function renderColUI(){
     '<button class="bg" onclick="dgT=\'\';localStorage.removeItem(\'dg_token\');initCol()" style="margin-left:auto;font-size:11px">✕ Desconectar</button></div>'+
     '<div style="display:flex;gap:18px;align-items:center;margin-bottom:20px;font-size:12px;color:var(--text2)" id="cst"></div>'+
     '<div class="rg" id="rg"></div><div id="cpg"></div>';
-  colPg=1;filterCol();
+  colPg=1;if(_colObserver){_colObserver.disconnect();_colObserver=null;}filterCol();
 }
 function filterCol(){
   var search=(Q('cs')&&Q('cs').value||'').toLowerCase();
@@ -804,35 +1027,48 @@ function filterCol(){
   });
   colPg=1;renderGrid();
 }
+var _colObserver=null;
 function renderGrid(){
-  var total=colFil.length,pages=Math.ceil(total/PPG);
-  var start=(colPg-1)*PPG,slice=colFil.slice(start,start+PPG);
+  var total=colFil.length;
   var cst=Q('cst');
-  if(cst)cst.innerHTML='<strong style="color:var(--text);font-family:\'Space Grotesk\',sans-serif;font-size:15px">'+colAll.length.toLocaleString()+'</strong> en colección'+(total<colAll.length?' · <strong style="color:var(--text);font-family:\'Space Grotesk\',sans-serif;font-size:15px">'+total.toLocaleString()+'</strong> filtrados':'');
+  if(cst)cst.innerHTML='<strong style="color:var(--text);font-family:Space Grotesk,sans-serif;font-size:15px">'+colAll.length.toLocaleString()+'</strong> en colección'+(total<colAll.length?' &middot; <strong style="color:var(--text);font-family:Space Grotesk,sans-serif;font-size:15px">'+total.toLocaleString()+'</strong> filtrados':'');
   var rg=Q('rg');if(!rg)return;
-  if(!slice.length){rg.innerHTML='<div class="empty" style="grid-column:1/-1">🔍 Sin resultados</div>';return;}
-  rg.innerHTML=slice.map(function(r){
+  if(!total){rg.innerHTML='<div class="empty" style="grid-column:1/-1">Sin resultados</div>';var pg=Q('cpg');if(pg)pg.innerHTML='';return;}
+  colPg=1;rg.innerHTML='';
+  if(_colObserver){_colObserver.disconnect();_colObserver=null;}
+  var pg=Q('cpg');if(pg)pg.innerHTML='<div id="col-sentinel" style="height:60px;grid-column:1/-1"></div>';
+  appendGrid();
+  var sentinel=Q('col-sentinel');
+  if(sentinel&&'IntersectionObserver' in window){
+    _colObserver=new IntersectionObserver(function(entries){if(entries[0].isIntersecting)appendGrid();},{rootMargin:'300px'});
+    _colObserver.observe(sentinel);
+  }
+}
+function appendGrid(){
+  var total=colFil.length,start=(colPg-1)*PPG;
+  if(start>=total){
+    if(_colObserver){_colObserver.disconnect();_colObserver=null;}
+    var s=Q('col-sentinel');if(s)s.innerHTML='<div style="text-align:center;padding:16px;font-size:11px;color:var(--text3);font-family:Space Mono,monospace">-- '+total.toLocaleString()+' discos --</div>';
+    return;
+  }
+  var slice=colFil.slice(start,start+PPG);
+  var rg=Q('rg');if(!rg)return;
+  var html=slice.map(function(r){
     var bi=r.basic_information;
     var artist=(bi.artists||[]).map(function(a){return a.name.replace(/\s*[(]\d+[)]/,'');}).join(', ');
     var cover=bi.cover_image||bi.thumb||'';
     var fmt=bi.formats&&bi.formats[0]?bi.formats[0].name:'';
     return '<div class="vc" onclick="openVinyl('+r.id+')">'+
-      (cover?'<img src="'+cover+'" alt="" loading="lazy" onerror="this.style.display=\'none\'">':'')+
-      '<div class="vnc" style="'+(cover?'display:none':'')+'"><span style="font-size:28px;opacity:.2">💿</span><span>'+bi.title+'</span></div>'+
+      (cover?'<img src="'+cover+'" alt="" loading="lazy">':'')+
+      '<div class="vnc" style="'+(cover?'display:none':'')+'"><span style="font-size:28px;opacity:.2">LLL</span><span>'+bi.title+'</span></div>'+
       '<div class="vo"><div class="vt">'+bi.title+'</div><div class="va">'+artist+'</div>'+
       '<div class="vm">'+(bi.year?'<span class="tag">'+bi.year+'</span>':'')+(fmt?'<span class="tag v">'+fmt+'</span>':'')+'</div></div>'+
-      '<div class="vpb">▶</div>'+(fmt?'<div class="vfb">'+fmt+'</div>':'')+'</div>';
-  }).join('');
-  var pg=Q('cpg');
-  if(pg&&pages>1){
-    var btns='<button class="bg" '+(colPg<=1?'disabled':'')+' onclick="goPage('+(colPg-1)+')">← Ant</button>';
-    for(var i=Math.max(1,colPg-3);i<=Math.min(pages,colPg+3);i++){btns+='<button class="bg'+(i===colPg?' onv':'')+'" onclick="goPage('+i+')">'+i+'</button>';}
-    btns+='<button class="bg" '+(colPg>=pages?'disabled':'')+' onclick="goPage('+(colPg+1)+')">Sig →</button>';
-    btns+='<span style="font-size:12px;color:var(--text2);font-family:\'Space Mono\',monospace;margin-left:auto">'+(start+1)+'–'+Math.min(start+PPG,total)+' de '+total+'</span>';
-    pg.innerHTML='<div style="display:flex;gap:6px;align-items:center;margin-top:20px;flex-wrap:wrap">'+btns+'</div>';
-  }else if(pg)pg.innerHTML='';
+      '<div class="vpb">BBB</div>'+(fmt?'<div class="vfb">'+fmt+'</div>':'')+'</div>';
+  }).join('').replace(/LLL/g,'💿').replace(/BBB/g,'▶');
+  var sentinel=Q('col-sentinel');
+  if(sentinel){sentinel.insertAdjacentHTML('beforebegin',html);}else{rg.insertAdjacentHTML('beforeend',html);}
+  colPg++;
 }
-function goPage(pg){colPg=pg;renderGrid();var rg=Q('rg');if(rg)rg.scrollIntoView({behavior:'smooth',block:'start'});}
 
 async function openVinyl(rid){
   var r=colAll.find(function(x){return x.id===rid;});if(!r)return;
@@ -847,7 +1083,7 @@ async function openVinyl(rid){
   else{fb.style.display='flex';var ei2=lbl.querySelector('img.vli');if(ei2)ei2.style.display='none';}
   Q('vmo').classList.add('open');
   Q('vtl').innerHTML='<div style="padding:14px;font-size:12px;color:#444">Cargando tracklist…</div>';
-  vTracks=[];vIdx=0;vPlaying=false;updateVBtn();
+  vTracks=[];vIdx=0;vPlaying=false;vShuffleOn=false;vOrder=[];var vsb=Q('vshuf');if(vsb)vsb.style.color='#555';updateVBtn();
   try{
     var full=await dgF('/releases/'+bi.id);
     if(full.tracklist&&full.tracklist.length){
@@ -896,8 +1132,36 @@ async function vPlay(idx){
   }
 }
 function vToggle(){vPlaying=!vPlaying;updateVBtn();if(vPlaying){Q('vdisc').classList.add('sp');if(!vTracks.length)return;if(!Q('vyt').querySelector('iframe'))vPlay(vIdx);}else{Q('vdisc').classList.remove('sp');}}
-function vNext(){if(!vTracks.length)return;vPlay((vIdx+1)%vTracks.length);}
-function vPrev(){if(!vTracks.length)return;vPlay((vIdx-1+vTracks.length)%vTracks.length);}
+function vToggleShuffle(){
+  vShuffleOn=!vShuffleOn;
+  var btn=Q('vshuf');
+  if(btn){btn.style.color=vShuffleOn?'var(--red)':'#555';btn.title=vShuffleOn?'Aleatorio ON':'Aleatorio';}
+  if(vShuffleOn&&vTracks.length){
+    // build shuffled order excluding current
+    vOrder=shuffle(Object.keys(vTracks).map(Number).filter(function(i){return i!==vIdx;}));
+    vOrder.unshift(vIdx); // keep current first
+  }
+}
+function vNext(){
+  if(!vTracks.length)return;
+  if(vShuffleOn&&vOrder.length){
+    var pos=vOrder.indexOf(vIdx);
+    var nextPos=(pos+1)%vOrder.length;
+    vPlay(vOrder[nextPos]);
+  }else{
+    vPlay((vIdx+1)%vTracks.length);
+  }
+}
+function vPrev(){
+  if(!vTracks.length)return;
+  if(vShuffleOn&&vOrder.length){
+    var pos=vOrder.indexOf(vIdx);
+    var prevPos=(pos-1+vOrder.length)%vOrder.length;
+    vPlay(vOrder[prevPos]);
+  }else{
+    vPlay((vIdx-1+vTracks.length)%vTracks.length);
+  }
+}
 function updateVBtn(){Q('vplbtn').textContent=vPlaying?'⏸':'▶';}
 function seekV(e){var bar=Q('vpw')||e.currentTarget;var pct=Math.max(0,Math.min(1,(e.clientX-bar.getBoundingClientRect().left)/bar.offsetWidth));Q('vpr').style.width=(pct*100)+'%';Q('vpd').style.left=(pct*100)+'%';}
 function closeVinyl(e){if(e&&e.target!==Q('vmo'))return;Q('vmo').classList.remove('open');Q('vdisc').classList.remove('sp');Q('vyt').innerHTML='';vPlaying=false;if(vTimer)clearInterval(vTimer);updateVBtn();}
@@ -919,6 +1183,29 @@ async function initWL(){
           '<div class="wo"><div class="wt">'+bi.title+'</div><div class="war">'+artist+(bi.year?' · '+bi.year:'')+'</div></div></div>';
       }).join('')+'</div>';
   }catch(e){body.innerHTML='<div class="empty">⚠️ '+e.message+'</div>';}
+}
+
+function playRetroShuffle(year) {
+  // collect tracks from current retro card and shuffle them
+  var items = [];
+  document.querySelectorAll('.rtr').forEach(function(el) {
+    var n = el.querySelector('.rt-n'), a = el.querySelector('.rt-a');
+    if (n && a) items.push({ name: n.textContent, artist: a.textContent });
+  });
+  if (!items.length) return;
+  var sh = shuffle(items);
+  _currentList = sh.map(function(t) { return { name: t.name, artist: { name: t.artist, '#text': t.artist } }; });
+  _currentIdx = 0;
+  var t = sh[0];
+  show('player');
+  playYT(t.artist + ' ' + t.name, t.name, t.artist, '');
+  Q('pl-t').innerHTML = '<div class="tl">' + sh.map(function(t2, i) {
+    var q2 = t2.artist + ' ' + t2.name;
+    return '<div class="ti" onclick="playYT(\'' + esc(q2) + '\',\'' + esc(t2.name) + '\',\'' + esc(t2.artist) + '\',\'\')"><span class="tn">' + (i+1) + '</span><div class="ti2"></div><div style="flex:1;min-width:0"><div class="ti-n">' + t2.name + '</div><div class="ti-a">' + t2.artist + '</div></div></div>';
+  }).join('') + '</div>';
+  _shuffleOn = true;
+  var sb = Q('shuf-btn'); if (sb) { sb.classList.add('on'); sb.textContent = '⇄ ON'; }
+  var nb = Q('next-btn'); if (nb) nb.style.display = '';
 }
 
 loadHome();
