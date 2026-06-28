@@ -418,7 +418,10 @@ select option{background:var(--bg3)}
         <button class="bg on" onclick="loadDiscovery('1month',this)">1 mes</button>
         <button class="bg" onclick="loadDiscovery('3month',this)">3 meses</button>
         <button class="bg" onclick="loadDiscovery('overall',this)">Histórico</button>
-        <span id="disc-status" style="font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;margin-left:8px"></span>
+        <div class="csep"></div>
+        <button class="bg" id="disc-play" style="display:none" onclick="playDiscovery(false)">▶ Reproducir todo</button>
+        <button class="bg" id="disc-shuf" style="display:none" onclick="playDiscovery(true)">⇄ Aleatorio</button>
+        <span id="disc-status" style="font-size:11px;color:var(--text3);font-family:Space Mono,monospace;margin-left:4px"></span>
       </div>
       <div id="disc-results"><div class="ld"><div class="sp"></div>analizando tu historial…</div></div>
     </div>
@@ -428,7 +431,10 @@ select option{background:var(--bg3)}
   <section class="panel" id="panel-forgotten">
     <div class="ph"><div><h2>Artistas olvidados</h2><p>Escuchabas mucho y desaparecieron de tu rotación</p></div></div>
     <div class="pb">
-      <div style="font-size:12px;color:var(--text2);margin-bottom:20px">Artistas que dominaban tu historial hace 2-5 años y ya no aparecen en tus últimos 3 meses.</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--text2)">Artistas que dominaban tu historial y ya no aparecen en tus últimos 3 meses.</span>
+        <button class="bg" id="forg-shuf" style="display:none;margin-left:auto" onclick="playForgotten(true)">⇄ Aleatorio</button>
+      </div>
       <div id="forg-results"><div class="ld"><div class="sp"></div>excavando tu historial…</div></div>
     </div>
   </section>
@@ -437,7 +443,10 @@ select option{background:var(--bg3)}
   <section class="panel" id="panel-crossover">
     <div class="ph"><div><h2>Discos sin escuchar</h2><p>Vinilos de tu colección que casi nunca pones</p></div></div>
     <div class="pb">
-      <div style="font-size:12px;color:var(--text2);margin-bottom:20px">Cruce entre tu colección Discogs y tu historial Last.fm. Los discos con menos scrobbles de sus artistas.</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <span style="font-size:12px;color:var(--text2)">Cruce entre tu colección Discogs y tu historial Last.fm.</span>
+        <button class="bg" id="cross-play" style="display:none;margin-left:auto" onclick="playCrossover()">▶ Reproducir en secuencia</button>
+      </div>
       <div id="cross-results"><div class="ld"><div class="sp spv"></div>cruzando Discogs con Last.fm…</div></div>
     </div>
   </section>
@@ -1060,7 +1069,7 @@ function renderColUI(){
     '<button class="bg" onclick="dgT=\'\';localStorage.removeItem(\'dg_token\');initCol()" style="margin-left:auto;font-size:11px">✕ Desconectar</button></div>'+
     '<div style="display:flex;gap:18px;align-items:center;margin-bottom:20px;font-size:12px;color:var(--text2)" id="cst"></div>'+
     '<div class="rg" id="rg"></div><div id="cpg"></div>';
-  colPg=1;if(_colObserver){_colObserver.disconnect();_colObserver=null;}filterCol();
+  colPg=1;if(_colObserver){_colObserver.disconnect();_colObserver=null;}var os=Q('col-sentinel');if(os)os.remove();filterCol();
 }
 function filterCol(){
   var search=(Q('cs')&&Q('cs').value||'').toLowerCase();
@@ -1095,12 +1104,15 @@ function renderGrid(){
   if(!total){rg.innerHTML='<div class="empty" style="grid-column:1/-1">Sin resultados</div>';var pg=Q('cpg');if(pg)pg.innerHTML='';return;}
   colPg=1;rg.innerHTML='';
   if(_colObserver){_colObserver.disconnect();_colObserver=null;}
-  var pg=Q('cpg');if(pg)pg.innerHTML='<div id="col-sentinel" style="height:60px;grid-column:1/-1"></div>';
   appendGrid();
-  var sentinel=Q('col-sentinel');
-  if(sentinel&&'IntersectionObserver' in window){
+  // Add sentinel inside the grid for infinite scroll
+  var rg2=Q('rg');
+  if(rg2&&'IntersectionObserver' in window){
+    var sent=document.createElement('div');
+    sent.id='col-sentinel';sent.style.cssText='height:60px;grid-column:1/-1';
+    rg2.appendChild(sent);
     _colObserver=new IntersectionObserver(function(entries){if(entries[0].isIntersecting)appendGrid();},{rootMargin:'300px'});
-    _colObserver.observe(sentinel);
+    _colObserver.observe(sent);
   }
 }
 function appendGrid(){
@@ -1125,7 +1137,12 @@ function appendGrid(){
       '<div class="vpb">BBB</div>'+(fmt?'<div class="vfb">'+fmt+'</div>':'')+'</div>';
   }).join('').replace(/LLL/g,'💿').replace(/BBB/g,'▶');
   var sentinel=Q('col-sentinel');
-  if(sentinel){sentinel.insertAdjacentHTML('beforebegin',html);}else{rg.insertAdjacentHTML('beforeend',html);}
+  if(sentinel){
+    // Insert as proper grid items before sentinel
+    var tmp=document.createElement('div');
+    tmp.innerHTML=html;
+    while(tmp.firstChild){rg.insertBefore(tmp.firstChild,sentinel);}
+  }else{rg.insertAdjacentHTML('beforeend',html);}
   colPg++;
 }
 
@@ -1322,6 +1339,7 @@ async function loadDiscovery(period, btn) {
     }
     var results = Object.values(discovered).sort(function(a,b){ return b.match - a.match; }).slice(0, 20);
     if (st) st.textContent = results.length + ' artistas encontrados';
+    _discTracks = [];
     if (!results.length) { el.innerHTML = '<div class="empty">Sin sugerencias nuevas</div>'; return; }
 
     // Get top track for each
@@ -1336,6 +1354,11 @@ async function loadDiscovery(period, btn) {
         var imgUrl = r.img || '';
         var tname = track ? track.name : r.name;
         var q2 = r.name + ' ' + tname;
+        _discTracks.push({ name: tname, artist: { name: r.name }, playcount: '' });
+        if (_discTracks.length === 1 || _discTracks.length === results.length) {
+          var dp = Q('disc-play'), ds = Q('disc-shuf');
+          if (dp) dp.style.display = ''; if (ds) ds.style.display = '';
+        }
         var row = document.createElement('div');
         row.className = 'ti';
         row.style.cursor = 'pointer';
@@ -1367,6 +1390,8 @@ async function loadForgotten() {
       return !recentNames.has(a.name.toLowerCase()) && parseInt(a.playcount) > 20;
     }).slice(0, 25);
     if (!forgotten.length) { el.innerHTML = '<div class="empty">¡No has olvidado a nadie! Tu rotación es muy consistente.</div>'; return; }
+    _forgTracks = forgotten.map(function(a){ return { name: a.name + ' greatest hits', artist: { name: a.name }, playcount: a.playcount }; });
+    var fb = Q('forg-shuf'); if (fb) fb.style.display = '';
     el.innerHTML = '<div class="tl">' + forgotten.map(function(a, i) {
       var img = a.image && a.image[2] && a.image[2]['#text'] ? a.image[2]['#text'] : '';
       var q2 = a.name;
@@ -1405,6 +1430,8 @@ async function loadCrossover() {
                fmt: bi.formats && bi.formats[0] ? bi.formats[0].name : '' };
     }).sort(function(a,b){ return a.plays - b.plays; }).slice(0, 30);
 
+    _crossTracks = scored.map(function(r){ return { name: r.title, artist: { name: r.artist }, playcount: r.plays }; });
+    var cp = Q('cross-play'); if (cp) cp.style.display = '';
     el.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-bottom:14px;font-family:Space Mono,monospace">Ordenado de menos a más escuchado en Last.fm</div>' +
       '<div class="tl">' + scored.map(function(r) {
         var q2 = r.artist + ' ' + r.title;
@@ -1469,6 +1496,39 @@ async function loadMoodTime() {
           (t.count > 0 ? '<span class="tag" style="flex-shrink:0">'+t.count+'× a esta hora</span>' : '') + '</div>';
       }).join('') + '</div>';
   } catch(e) { el.innerHTML = '<div class="empty">Error: ' + e.message + '</div>'; }
+}
+
+
+// ── DISCOVERY PLAY ───────────────────────────
+var _discTracks = [];
+var _forgTracks = [];
+var _crossTracks = [];
+
+function playDiscovery(shuf) {
+  if (!_discTracks.length) return;
+  show('player');
+  var list = shuf ? shuffle(_discTracks.slice()) : _discTracks.slice();
+  renderTracks(list, false, Q('pl-t'));
+  kpSetList(list);
+  kpPlayAt(0);
+  if (shuf) { _kpShuf = true; var b = Q('kp-shuf'); if(b){b.classList.add('on');b.textContent='⇄ ON';} }
+}
+
+function playForgotten(shuf) {
+  if (!_forgTracks.length) return;
+  show('player');
+  var list = shuf ? shuffle(_forgTracks.slice()) : _forgTracks.slice();
+  renderTracks(list, false, Q('pl-t'));
+  kpSetList(list);
+  kpPlayAt(0);
+}
+
+function playCrossover() {
+  if (!_crossTracks.length) return;
+  show('player');
+  renderTracks(_crossTracks.slice(), false, Q('pl-t'));
+  kpSetList(_crossTracks.slice());
+  kpPlayAt(0);
 }
 
 loadHome();
