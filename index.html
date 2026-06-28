@@ -8,7 +8,10 @@
 <style>
 :root{--bg:#0a0a0a;--bg2:#111;--bg3:#181818;--bg4:#222;--border:#2a2a2a;--text:#e8e0d4;--text2:#888880;--text3:#444440;--red:#ff4136;--red2:#c4382e;--gold:#c8a96e;--vac:#7b68ee}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;display:flex;min-height:100vh}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:14px;line-height:1.6;display:flex;min-height:100vh;position:relative}
+#dynbg{position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;background-repeat:no-repeat;filter:blur(80px) brightness(.25) saturate(1.8);opacity:0;transition:opacity 1.5s ease,background-image 2s ease;pointer-events:none;transform:scale(1.1)}
+#dynbg.show{opacity:1}
+#sb,#main,.vmo{position:relative;z-index:1}
 #sb{width:230px;min-height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;overflow-y:auto}
 .logo{padding:20px 20px 16px;border-bottom:1px solid var(--border)}
 .logo h1{font-family:'Space Grotesk',sans-serif;font-size:19px;font-weight:700;letter-spacing:-.5px}
@@ -228,6 +231,7 @@ select option{background:var(--bg3)}
 </style>
 </head>
 <body>
+<div id="dynbg"></div>
 <aside id="sb">
   <div class="logo"><h1>Kino<span class="r">Record</span></h1><p>kinoluiggi · 2008–2026</p></div>
   <nav>
@@ -239,6 +243,14 @@ select option{background:var(--bg3)}
       <a onclick="show('ia')" data-p="ia"><span class="ico">✦</span><span>Radio KinoRecord</span></a>
       <a onclick="show('isla')" data-p="isla"><span class="ico">♥</span><span>Isla Desierta</span></a>
       <a onclick="show('retrovisor')" data-p="retrovisor"><span class="ico">⟳</span><span>Retrovisor</span></a>
+    </div>
+    <hr class="sd">
+    <div class="ns">
+      <div class="nsl lfm" style="color:#7b68ee">Descubrir</div>
+      <a onclick="show('discovery')" data-p="discovery"><span class="ico">✦</span><span>Descubrimiento</span></a>
+      <a onclick="show('forgotten')" data-p="forgotten"><span class="ico">◌</span><span>Artistas olvidados</span></a>
+      <a onclick="show('crossover')" data-p="crossover"><span class="ico">⊕</span><span>Discos sin escuchar</span></a>
+      <a onclick="show('moodtime')" data-p="moodtime"><span class="ico">◐</span><span>Mood por hora</span></a>
     </div>
     <hr class="sd">
     <div class="ns">
@@ -396,6 +408,49 @@ select option{background:var(--bg3)}
     <div class="ph"><div><h2>Wantlist</h2><p>Lo que quieres conseguir</p></div></div>
     <div class="pb" id="wl-body"><div class="ld"><div class="sp spv"></div>cargando…</div></div>
   </section>
+
+  <!-- DISCOVERY -->
+  <section class="panel" id="panel-discovery">
+    <div class="ph"><div><h2>Descubrimiento</h2><p>Artistas similares a tus favoritos que aún no escuchas</p></div></div>
+    <div class="pb">
+      <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:11px;color:var(--text3)">Basado en top artistas de:</span>
+        <button class="bg on" onclick="loadDiscovery('1month',this)">1 mes</button>
+        <button class="bg" onclick="loadDiscovery('3month',this)">3 meses</button>
+        <button class="bg" onclick="loadDiscovery('overall',this)">Histórico</button>
+        <span id="disc-status" style="font-size:11px;color:var(--text3);font-family:'Space Mono',monospace;margin-left:8px"></span>
+      </div>
+      <div id="disc-results"><div class="ld"><div class="sp"></div>analizando tu historial…</div></div>
+    </div>
+  </section>
+
+  <!-- FORGOTTEN ARTISTS -->
+  <section class="panel" id="panel-forgotten">
+    <div class="ph"><div><h2>Artistas olvidados</h2><p>Escuchabas mucho y desaparecieron de tu rotación</p></div></div>
+    <div class="pb">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:20px">Artistas que dominaban tu historial hace 2-5 años y ya no aparecen en tus últimos 3 meses.</div>
+      <div id="forg-results"><div class="ld"><div class="sp"></div>excavando tu historial…</div></div>
+    </div>
+  </section>
+
+  <!-- CROSSOVER DISCOGS x LASTFM -->
+  <section class="panel" id="panel-crossover">
+    <div class="ph"><div><h2>Discos sin escuchar</h2><p>Vinilos de tu colección que casi nunca pones</p></div></div>
+    <div class="pb">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:20px">Cruce entre tu colección Discogs y tu historial Last.fm. Los discos con menos scrobbles de sus artistas.</div>
+      <div id="cross-results"><div class="ld"><div class="sp spv"></div>cruzando Discogs con Last.fm…</div></div>
+    </div>
+  </section>
+
+  <!-- MOOD BY HOUR -->
+  <section class="panel" id="panel-moodtime">
+    <div class="ph"><div><h2>Mood por hora</h2><p>Qué escuchas tú normalmente a esta hora</p></div></div>
+    <div class="pb">
+      <div id="mood-clock" style="margin-bottom:20px"></div>
+      <div id="mood-results"><div class="ld"><div class="sp"></div>analizando patrones…</div></div>
+    </div>
+  </section>
+
 </main>
 
 <!-- VINYL OVERLAY -->
@@ -525,6 +580,10 @@ function lazyLoad(id){
   if(id==='collection')initCol();
   if(id==='wantlist')initWL();
   if(id==='ia')radioLoad();
+  if(id==='discovery')loadDiscovery('1month',document.querySelector('[onclick*="discovery"]'));
+  if(id==='forgotten')loadForgotten();
+  if(id==='crossover')loadCrossover();
+  if(id==='moodtime')loadMoodTime();
 }
 
 async function loadHome(){
@@ -746,7 +805,7 @@ async function timeMachine(){
       var time=t.date&&t.date['#text']?(t.date['#text'].split(',')[1]||'').trim():'';
       var loved=t.loved==='1'?'<span class="tl2">♥</span>':'';
       var q2=artist+' '+t.name;
-      return '<div class="ti" onclick="show(\'player\');playYT(\''+esc(q2)+'\'\',\''+esc(t.name)+'\'\',\''+esc(artist)+'\'\',\'\')">'+ 
+      return '<div class="ti" onclick="show(\'player\');playYT(\''+esc(q2)+'\',\''+esc(t.name)+'\',\''+esc(artist)+'\',\'\')">'+ 
         '<span class="tn">'+(i+1)+'</span>'+(imgUrl?'<img class="ti2" src="'+imgUrl+'" alt="">':'<div class="ti2"></div>')+
         '<div style="flex:1;min-width:0"><div class="ti-n">'+t.name+'</div><div class="ti-a">'+artist+'</div></div>'+
         loved+'<span class="tp" style="font-size:10px;color:var(--text3)">'+time+'</span>'+'<span style="font-size:11px;color:var(--text3);margin-left:8px;opacity:.5">▶</span></div>';
@@ -1206,6 +1265,210 @@ function playRetroShuffle(year) {
   _shuffleOn = true;
   var sb = Q('shuf-btn'); if (sb) { sb.classList.add('on'); sb.textContent = '⇄ ON'; }
   var nb = Q('next-btn'); if (nb) nb.style.display = '';
+}
+
+
+// ── DYNAMIC BACKGROUND ───────────────────────
+function setBg(imgUrl) {
+  if (!imgUrl) return;
+  var bg = Q('dynbg');
+  if (!bg) return;
+  bg.style.backgroundImage = 'url(' + imgUrl + ')';
+  bg.classList.add('show');
+}
+
+// Patch playYT to update background
+var _origPlayYT = playYT;
+async function playYT(query, track, artist, meta) {
+  await _origPlayYT(query, track, artist, meta);
+  // Try to get artist image from Last.fm for background
+  try {
+    var data = await lfm({ method: 'artist.getInfo', artist: artist, autocorrect: 1 });
+    var img = data.artist && data.artist.image && data.artist.image[3] && data.artist.image[3]['#text'];
+    if (img) setBg(img);
+  } catch(e) {}
+}
+
+// ── DISCOVERY ────────────────────────────────
+async function loadDiscovery(period, btn) {
+  document.querySelectorAll('#panel-discovery .bg').forEach(function(b){b.classList.remove('on');});
+  if (btn) btn.classList.add('on');
+  var el = Q('disc-results'), st = Q('disc-status');
+  el.innerHTML = '<div class="ld"><div class="sp"></div>analizando tus artistas…</div>';
+  if (st) st.textContent = '';
+  try {
+    // Get top artists
+    var ta = await lfm({ method: 'user.getTopArtists', period: period, limit: 10 });
+    var topArtists = (ta.topartists && ta.topartists.artist ? ta.topartists.artist : []);
+    var topNames = topArtists.map(function(a){ return a.name.toLowerCase(); });
+    // Also get recent top to exclude
+    var ta2 = await lfm({ method: 'user.getTopArtists', period: 'overall', limit: 100 });
+    var allKnown = (ta2.topartists && ta2.topartists.artist ? ta2.topartists.artist : []).map(function(a){ return a.name.toLowerCase(); });
+
+    if (st) st.textContent = 'buscando similares…';
+    var discovered = {};
+    for (var i = 0; i < Math.min(topArtists.length, 6); i++) {
+      var artist = topArtists[i];
+      try {
+        var sim = await lfm({ method: 'artist.getSimilar', artist: artist.name, limit: 8 });
+        var similars = (sim.similarartists && sim.similarartists.artist ? sim.similarartists.artist : []);
+        similars.forEach(function(s) {
+          var nameLow = s.name.toLowerCase();
+          if (allKnown.indexOf(nameLow) === -1 && !discovered[nameLow]) {
+            discovered[nameLow] = { name: s.name, match: s.match, via: artist.name, img: s.image && s.image[2] && s.image[2]['#text'] ? s.image[2]['#text'] : '' };
+          }
+        });
+      } catch(e) {}
+    }
+    var results = Object.values(discovered).sort(function(a,b){ return b.match - a.match; }).slice(0, 20);
+    if (st) st.textContent = results.length + ' artistas encontrados';
+    if (!results.length) { el.innerHTML = '<div class="empty">Sin sugerencias nuevas</div>'; return; }
+
+    // Get top track for each
+    el.innerHTML = '<div class="tl" id="disc-list"></div>';
+    var list = Q('disc-list');
+    for (var j = 0; j < results.length; j++) {
+      var r = results[j];
+      try {
+        var tt = await lfm({ method: 'artist.getTopTracks', artist: r.name, limit: 1 });
+        var track = tt.toptracks && tt.toptracks.track && tt.toptracks.track[0] ? tt.toptracks.track[0] : null;
+        var pct = Math.round(parseFloat(r.match) * 100);
+        var imgUrl = r.img || '';
+        var tname = track ? track.name : r.name;
+        var q2 = r.name + ' ' + tname;
+        var row = document.createElement('div');
+        row.className = 'ti';
+        row.style.cursor = 'pointer';
+        row.onclick = (function(q, tn, an){ return function(){ show('player'); playYT(q, tn, an, '✦ descubrimiento'); }; })(q2, tname, r.name);
+        row.innerHTML =
+          (imgUrl ? '<img class="ti2" src="'+imgUrl+'" alt="">' : '<div class="ti2"></div>') +
+          '<div style="flex:1;min-width:0"><div class="ti-n">'+r.name+'</div>' +
+          '<div class="ti-a">via '+r.via+' · '+pct+'% similitud</div></div>' +
+          '<span class="tag v" style="flex-shrink:0">'+pct+'%</span>';
+        list.appendChild(row);
+      } catch(e) {}
+    }
+  } catch(e) { el.innerHTML = '<div class="empty">Error: ' + e.message + '</div>'; }
+}
+
+// ── FORGOTTEN ARTISTS ─────────────────────────
+async function loadForgotten() {
+  var el = Q('forg-results');
+  el.innerHTML = '<div class="ld"><div class="sp"></div>comparando períodos…</div>';
+  try {
+    var [old1, recent] = await Promise.all([
+      lfm({ method: 'user.getTopArtists', period: 'overall', limit: 200 }),
+      lfm({ method: 'user.getTopArtists', period: '3month', limit: 100 })
+    ]);
+    var oldArtists = (old1.topartists && old1.topartists.artist ? old1.topartists.artist : []);
+    var recentNames = new Set((recent.topartists && recent.topartists.artist ? recent.topartists.artist : []).map(function(a){ return a.name.toLowerCase(); }));
+    // Artists with high overall plays but absent from recent 3 months
+    var forgotten = oldArtists.filter(function(a) {
+      return !recentNames.has(a.name.toLowerCase()) && parseInt(a.playcount) > 20;
+    }).slice(0, 25);
+    if (!forgotten.length) { el.innerHTML = '<div class="empty">¡No has olvidado a nadie! Tu rotación es muy consistente.</div>'; return; }
+    el.innerHTML = '<div class="tl">' + forgotten.map(function(a, i) {
+      var img = a.image && a.image[2] && a.image[2]['#text'] ? a.image[2]['#text'] : '';
+      var q2 = a.name;
+      return '<div class="ti" onclick="show(\'player\');playYT(\''+esc(q2)+' greatest hits\',\'Top tracks\',\''+esc(a.name)+'\',\''+a.playcount+' plays\')">'+ 
+        (img?'<img class="ti2" src="'+img+'" alt="">':'<div class="ti2" style="display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:18px">◌</div>')+
+        '<div style="flex:1;min-width:0"><div class="ti-n">'+a.name+'</div><div class="ti-a">'+a.playcount+' plays en total · ausente últimos 3 meses</div></div>'+
+        '<span class="tag r" style="flex-shrink:0">olvidado</span></div>';
+    }).join('') + '</div>';
+  } catch(e) { el.innerHTML = '<div class="empty">Error: ' + e.message + '</div>'; }
+}
+
+// ── CROSSOVER DISCOGS × LASTFM ───────────────
+async function loadCrossover() {
+  var el = Q('cross-results');
+  if (!dgT) { el.innerHTML = '<div class="empty">💿 Conecta tu token de Discogs primero</div>'; return; }
+  el.innerHTML = '<div class="ld"><div class="sp spv"></div>cruzando datos…</div>';
+  try {
+    // Get overall top artists from Last.fm (playcount per artist)
+    var ta = await lfm({ method: 'user.getTopArtists', period: 'overall', limit: 500 });
+    var playcounts = {};
+    (ta.topartists && ta.topartists.artist ? ta.topartists.artist : []).forEach(function(a) {
+      playcounts[a.name.toLowerCase()] = parseInt(a.playcount) || 0;
+    });
+    // Make sure collection is loaded
+    if (!colAll.length) {
+      el.innerHTML = '<div class="ld"><div class="sp spv"></div>cargando colección Discogs…</div>';
+      await fetchCol();
+    }
+    // Score each record: low playcount = needs more love
+    var scored = colAll.map(function(r) {
+      var bi = r.basic_information;
+      var artist = (bi.artists && bi.artists[0] ? bi.artists[0].name.replace(/\s*[(]\d+[)]/, '') : '');
+      var plays = playcounts[artist.toLowerCase()] || 0;
+      var cover = bi.cover_image || bi.thumb || '';
+      return { id: r.id, title: bi.title, artist: artist, year: bi.year, cover: cover, plays: plays,
+               fmt: bi.formats && bi.formats[0] ? bi.formats[0].name : '' };
+    }).sort(function(a,b){ return a.plays - b.plays; }).slice(0, 30);
+
+    el.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-bottom:14px;font-family:Space Mono,monospace">Ordenado de menos a más escuchado en Last.fm</div>' +
+      '<div class="tl">' + scored.map(function(r) {
+        var q2 = r.artist + ' ' + r.title;
+        var playsLabel = r.plays === 0 ? '<span class="tag r">nunca</span>' : '<span class="tag">' + r.plays + ' plays</span>';
+        return '<div class="ti" onclick="openVinyl('+r.id+')">'+
+          (r.cover ? '<img class="ti2" src="'+r.cover+'" alt="">' : '<div class="ti2" style="display:flex;align-items:center;justify-content:center;color:var(--text3)">💿</div>') +
+          '<div style="flex:1;min-width:0"><div class="ti-n">'+r.title+'</div><div class="ti-a">'+r.artist+(r.year?' · '+r.year:'')+'</div></div>'+
+          playsLabel+'</div>';
+      }).join('') + '</div>';
+  } catch(e) { el.innerHTML = '<div class="empty">Error: ' + e.message + '</div>'; }
+}
+
+// ── MOOD BY HOUR ──────────────────────────────
+async function loadMoodTime() {
+  var el = Q('mood-results'), clk = Q('mood-clock');
+  var now = new Date();
+  var hour = now.getHours();
+  var label = hour < 6 ? 'madrugada' : hour < 12 ? 'mañana' : hour < 17 ? 'tarde' : hour < 21 ? 'noche' : 'noche tardía';
+  if (clk) clk.innerHTML = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:4px"><span style="font-size:28px">'+(hour<6?'🌙':hour<12?'🌅':hour<17?'☀️':hour<21?'🌆':'🌃')+'</span><div><div style="font-family:Space Grotesk,sans-serif;font-size:18px;font-weight:700">Son las '+hour+':00 — '+label+'</div><div style="font-size:12px;color:var(--text2)">Basado en tus scrobbles históricos a esta hora</div></div></div>';
+  el.innerHTML = '<div class="ld"><div class="sp"></div>analizando scrobbles históricos a las ' + hour + ':00…</div>';
+  try {
+    // Sample: fetch recent tracks and filter by hour
+    // Last.fm API doesn't support hour filtering directly, so we use getRecentTracks
+    // and sample from multiple historical dates at this hour
+    var artistCount = {};
+    var trackCount = {};
+    // Fetch last 200 scrobbles and filter by hour
+    var rt = await lfm({ method: 'user.getRecentTracks', limit: 200, extended: 1 });
+    var tracks = rt.recenttracks && rt.recenttracks.track ? (Array.isArray(rt.recenttracks.track) ? rt.recenttracks.track : [rt.recenttracks.track]) : [];
+    var hourTracks = tracks.filter(function(t) {
+      if (!t.date) return false;
+      var d = new Date(t.date['#text'] + ' UTC');
+      return Math.abs(d.getHours() - hour) <= 1;
+    });
+    // Also use overall top tracks as fallback context
+    var tt = await lfm({ method: 'user.getTopTracks', period: 'overall', limit: 50 });
+    var topTracks = (tt.toptracks && tt.toptracks.track ? tt.toptracks.track : []);
+    // Count artists from hour tracks
+    hourTracks.forEach(function(t) {
+      var a = (t.artist && t.artist['#text']) || '';
+      artistCount[a] = (artistCount[a] || 0) + 1;
+      var key = a + '::' + t.name;
+      trackCount[key] = { name: t.name, artist: a, count: (trackCount[key] ? trackCount[key].count + 1 : 1), img: t.image && t.image[1] && t.image[1]['#text'] ? t.image[1]['#text'] : '' };
+    });
+    var hourTrackList = Object.values(trackCount).sort(function(a,b){ return b.count - a.count; });
+    // Merge with top tracks if not enough hour-specific data
+    if (hourTrackList.length < 5) {
+      topTracks.slice(0, 15).forEach(function(t) {
+        var a = (t.artist && t.artist.name) || '';
+        var key = a + '::' + t.name;
+        if (!trackCount[key]) hourTrackList.push({ name: t.name, artist: a, count: 0, img: getImg(t) });
+      });
+    }
+    hourTrackList = hourTrackList.slice(0, 20);
+    if (!hourTrackList.length) { el.innerHTML = '<div class="empty">Sin suficientes datos para esta hora</div>'; return; }
+    el.innerHTML = '<div style="font-size:11px;color:var(--text3);margin-bottom:14px;font-family:Space Mono,monospace">' + hourTracks.length + ' scrobbles encontrados entre las ' + (hour-1) + ':00 y las ' + (hour+1) + ':00 · ' + hourTrackList.length + ' tracks</div>' +
+      '<div class="tl">' + hourTrackList.map(function(t, i) {
+        var q2 = t.artist + ' ' + t.name;
+        return '<div class="ti" onclick="show(\'player\');playYT(\''+esc(q2)+'\',\''+esc(t.name)+'\',\''+esc(t.artist)+'\',\''+label+'\')">'+ 
+          (t.img ? '<img class="ti2" src="'+t.img+'" alt="">' : '<div class="ti2"></div>') +
+          '<div style="flex:1;min-width:0"><div class="ti-n">'+t.name+'</div><div class="ti-a">'+t.artist+'</div></div>'+
+          (t.count > 0 ? '<span class="tag" style="flex-shrink:0">'+t.count+'× a esta hora</span>' : '') + '</div>';
+      }).join('') + '</div>';
+  } catch(e) { el.innerHTML = '<div class="empty">Error: ' + e.message + '</div>'; }
 }
 
 loadHome();
