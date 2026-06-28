@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KinoRecord</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════
+   TOKENS
+══════════════════════════════════════ */
+:root {
+  --bg:       #0a0a0a;
+  --bg2:      #111111;
+  --bg3:      #181818;
+  --bg4:      #222222;
+  --border:   #2a2a2a;
+  --text:     #e8e0d4;
+  --text2:    #888880;
+  --text3:    #444440;
+  --red:      #ff4136;
+  --red2:     #c4382e;
+  --gold:     #c8a96e;
+  --vinyl:    #1a1a2e; /* deep indigo for vinyl section */
+  --vinyl2:   #16213e;
+  --vinyl-ac: #7b68ee; /* slate blue accent for Discogs */
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ══════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════ */
+#sidebar {
+  width: 230px;
+  min-height: 100vh;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  overflow-y: auto;
+}
+
+.logo {
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.logo h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.logo h1 .kino { color: var(--text); }
+.logo h1 .record { color: var(--red); }
+.logo p { font-size: 10px; color: var(--text3); margin-top: 3px; font-family: 'Space Mono', monospace; }
+
+.nav-section {
+  padding: 14px 0 4px;
+}
+.nav-section-label {
+  padding: 0 20px 6px;
+  font-size: 9px;
+  font-family: 'Space Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nav-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.nav-section-label.vinyl-label { color: var(--vinyl-ac); }
+.nav-section-label.lastfm-label { color: var(--red); }
+
+nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px;
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all 0.12s;
+  user-select: none;
+}
+nav a:hover { color: var(--text); background: var(--bg3); }
+nav a.active-lastfm { color: var(--text); border-left-color: var(--red); background: rgba(255,65,54,0.06); }
+nav a.active-vinyl { color: var(--text); border-left-color: var(--vinyl-ac); background: rgba(123,104,238,0.07); }
+nav a .ico { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+
+.sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+
+.sidebar-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding: 14px 18px;
+  flex-shrink: 0;
+}
+.user-badge { display: flex; align-items: center; gap: 9px; }
+.user-badge img { width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); object-fit: cover; }
+.badge-name { font-size: 12px; font-weight: 600; }
+.badge-sub { font-size: 10px; color: var(--text3); }
+
+/* ══════════════════════════════════════
+   MAIN
+══════════════════════════════════════ */
+#main {
+  margin-left: 230px;
+  flex: 1;
+  min-height: 100vh;
+  position: relative;
+}
+
+.panel { display: none; min-height: 100vh; }
+.panel.active { display: block; }
+
+/* Last.fm panels: red-tinted header bar */
+.panel-lastfm .panel-header { border-bottom: 1px solid #2a1a1a; }
+/* Vinyl panels: indigo bg hint */
+.panel-vinyl { background: linear-gradient(180deg, #0d0d1a 0%, var(--bg) 400px); }
+.panel-vinyl .panel-header { border-bottom: 1px solid #1e1e35; }
+
+.panel-header {
+  padding: 28px 34px 22px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.panel-header-left h2 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+.panel-header-left p { color: var(--text2); font-size: 12px; margin-top: 3px; }
+
+.panel-body { padding: 26px 34px 40px; }
+
+/* ══════════════════════════════════════
+   DESIGN TOKENS (shared)
+══════════════════════════════════════ */
+.tag {
+  display: inline-block;
+  font-size: 9px;
+  font-family: 'Space Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  color: var(--text3);
+}
+.tag.red { border-color: var(--red); color: var(--red); }
+.tag.gold { border-color: var(--gold); color: var(--gold); }
+.tag.violet { border-color: var(--vinyl-ac); color: var(--vinyl-ac); }
+
+.btn {
+  background: var(--red);
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+  line-height: 1;
+}
+.btn:hover { background: var(--red2); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-vinyl {
+  background: var(--vinyl-ac);
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.btn-vinyl:hover { background: #6a58d4; }
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  padding: 6px 13px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.12s;
+  line-height: 1;
+}
+.btn-ghost:hover { border-color: var(--text3); color: var(--text); }
+.btn-ghost.on { border-color: var(--red); color: var(--red); }
+.btn-ghost.on-vinyl { border-color: var(--vinyl-ac); color: var(--vinyl-ac); }
+
+input, select, textarea {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.12s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--red); }
+.vinyl-focus input:focus, .vinyl-focus select:focus { border-color: var(--vinyl-ac); }
+select option { background: var(--bg3); }
+
+.loading {
+  display: flex; align-items: center; gap: 10px;
+  color: var(--text3); font-size: 13px; padding: 24px 0;
+}
+.spinner {
+  width: 14px; height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--red);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+.spinner-vinyl { border-top-color: var(--vinyl-ac); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty { padding: 40px 0; text-align: center; color: var(--text3); font-size: 13px; }
+.empty .emo { font-size: 28px; margin-bottom: 10px; }
+
+/* ── scrollbar ── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); }
+
+/* ══════════════════════════════════════
+   HOME / DASHBOARD
+══════════════════════════════════════ */
+.home-hero {
+  padding: 34px 34px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-bottom: 28px;
+}
+.home-hero-half {
+  background: var(--bg3);
+  padding: 24px 28px;
+}
+.home-hero-half h3 {
+  font-size: 9px;
+  font-family: 'Space Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 14px;
+}
+.home-hero-half h3.lastfm { color: var(--red); }
+.home-hero-half h3.vinyl { color: var(--vinyl-ac); }
+
+.hero-stats { display: flex; gap: 24px; flex-wrap: wrap; }
+.hero-stat .val {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+}
+.hero-stat .lbl { font-size: 10px; color: var(--text2); margin-top: 3px; }
+
+.home-body { padding: 0 34px 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.home-section h4 {
+  font-size: 10px; font-family: 'Space Mono', monospace;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: var(--text3); margin-bottom: 12px;
+}
+
+.recent-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-top: 1px solid var(--border);
+  cursor: pointer; transition: opacity 0.1s;
+}
+.recent-item:first-child { border-top: none; }
+.recent-item:hover { opacity: 0.75; }
+.ri-img { width: 34px; height: 34px; background: var(--bg4); flex-shrink: 0; object-fit: cover; }
+.ri-info { flex: 1; min-width: 0; }
+.ri-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ri-sub { font-size: 11px; color: var(--text2); }
+.ri-meta { font-size: 10px; color: var(--text3); font-family: 'Space Mono', monospace; white-space: nowrap; }
+
+.live-dot { display: inline-block; width: 6px; height: 6px; background: var(--red); border-radius: 50%; animation: blink 1s infinite; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.2} }
+
+/* ══════════════════════════════════════
+   KINOPLAYER
+══════════════════════════════════════ */
+.now-playing {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 14px 18px;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 20px;
+}
+.spectrum { display: flex; align-items: flex-end; gap: 2px; height: 24px; width: 36px; flex-shrink: 0; }
+.s-bar { width: 4px; background: var(--red); border-radius: 1px; opacity: 0.25; animation: sbar 0.6s ease-in-out infinite alternate; }
+.s-bar:nth-child(2){animation-delay:.1s} .s-bar:nth-child(3){animation-delay:.2s} .s-bar:nth-child(4){animation-delay:.15s} .s-bar:nth-child(5){animation-delay:.05s}
+.spectrum.playing .s-bar { opacity: 1; }
+@keyframes sbar { from{height:3px} to{height:22px} }
+#np-track { font-size: 14px; font-weight: 600; font-family: 'Space Grotesk', sans-serif; }
+#np-artist { font-size: 11px; color: var(--text2); }
+#np-info { flex: 1; min-width: 0; }
+#np-meta { font-size: 10px; color: var(--text3); font-family: 'Space Mono', monospace; white-space: nowrap; }
+
+.yt-wrap {
+  background: #000;
+  aspect-ratio: 16/9;
+  max-width: 600px;
+  position: relative;
+  margin-bottom: 20px;
+}
+.yt-wrap iframe { width: 100%; height: 100%; border: none; }
+.yt-placeholder {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; color: var(--text3);
+}
+.yt-icon { font-size: 40px; opacity: 0.25; }
+
+.ctrl-row { display: flex; gap: 6px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+.ctrl-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
+
+.track-list { display: flex; flex-direction: column; gap: 1px; }
+.track-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 12px; background: var(--bg3);
+  cursor: pointer; transition: background 0.1s;
+  border: 1px solid transparent;
+}
+.track-item:hover { background: var(--bg4); }
+.track-item.now { border-color: var(--red); background: rgba(255,65,54,0.05); }
+.t-num { width: 22px; text-align: right; color: var(--text3); font-size: 11px; font-family: 'Space Mono', monospace; flex-shrink: 0; }
+.t-img { width: 34px; height: 34px; object-fit: cover; background: var(--bg4); flex-shrink: 0; }
+.t-info { flex: 1; min-width: 0; }
+.t-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-artist { font-size: 11px; color: var(--text2); }
+.t-plays { font-size: 11px; color: var(--text3); font-family: 'Space Mono', monospace; white-space: nowrap; }
+.t-love { color: var(--red); font-size: 11px; }
+
+/* ══════════════════════════════════════
+   MÁQUINA DEL TIEMPO
+══════════════════════════════════════ */
+.dt-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 22px; flex-wrap: wrap; }
+.dt-row label { display: block; font-size: 10px; color: var(--text3); margin-bottom: 4px; font-family: 'Space Mono', monospace; text-transform: uppercase; }
+
+.time-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-bottom: 22px; }
+.ts-stat { background: var(--bg3); padding: 16px 18px; }
+.ts-stat .lbl { font-size: 9px; color: var(--text3); text-transform: uppercase; font-family: 'Space Mono', monospace; margin-bottom: 5px; }
+.ts-stat .val { font-size: 18px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+.ts-stat .sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+/* ══════════════════════════════════════
+   IA PLAYLIST
+══════════════════════════════════════ */
+.ia-key-row { display: flex; gap: 8px; align-items: flex-end; margin-bottom: 18px; }
+.ia-key-row .f { flex: 1; }
+.ia-key-row label { display: block; font-size: 10px; color: var(--text3); margin-bottom: 4px; font-family: 'Space Mono', monospace; text-transform: uppercase; }
+.ia-key-row input { width: 100%; }
+.ia-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+.ia-grid label { display: block; font-size: 10px; color: var(--text3); margin-bottom: 4px; font-family: 'Space Mono', monospace; text-transform: uppercase; }
+.ia-grid .full { grid-column: 1/-1; }
+.ia-grid select, .ia-grid input, .ia-grid textarea { width: 100%; }
+.ia-grid textarea { resize: vertical; min-height: 54px; }
+
+.pl-result { background: var(--bg3); border: 1px solid var(--border); padding: 22px; margin-top: 20px; }
+.pl-title { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; color: var(--gold); margin-bottom: 6px; }
+.pl-narrative { font-size: 13px; color: var(--text2); font-style: italic; line-height: 1.7; margin-bottom: 18px; }
+.pl-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 0; border-top: 1px solid var(--border);
+  cursor: pointer;
+}
+.pl-item:hover .pl-name { color: var(--red); }
+.pl-num { width: 18px; font-size: 10px; color: var(--text3); font-family: 'Space Mono', monospace; }
+.pl-info { flex: 1; }
+.pl-name { font-size: 13px; font-weight: 500; }
+.pl-artist { font-size: 11px; color: var(--text2); }
+.pl-reason { font-size: 11px; color: var(--text3); font-style: italic; text-align: right; max-width: 260px; }
+
+/* ══════════════════════════════════════
+   ISLA DESIERTA
+══════════════════════════════════════ */
+.isla-layout { display: grid; grid-template-columns: 340px 1fr; gap: 22px; }
+.constellation-wrap { background: var(--bg3); border: 1px solid var(--border); height: 320px; }
+.constellation-wrap canvas { width: 100%; height: 100%; }
+.constellation-note { font-size: 10px; color: var(--text3); text-align: center; margin-top: 6px; }
+
+.isla-list { display: flex; flex-direction: column; gap: 1px; }
+.isla-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 12px; background: var(--bg3);
+  border: 1px solid transparent; cursor: pointer; transition: background 0.1s;
+}
+.isla-item:hover { background: var(--bg4); }
+.isla-item.top { border-color: rgba(200,169,110,0.35); }
+.isla-rank { width: 26px; text-align: center; font-size: 11px; font-family: 'Space Mono', monospace; color: var(--text3); flex-shrink: 0; }
+.isla-rank.g { color: var(--gold); font-weight: 700; font-size: 13px; }
+.isla-img { width: 34px; height: 34px; object-fit: cover; background: var(--bg4); flex-shrink: 0; }
+.isla-info { flex: 1; min-width: 0; }
+.isla-name { font-size: 13px; font-weight: 500; }
+.isla-artist { font-size: 11px; color: var(--text2); }
+.isla-score { text-align: right; flex-shrink: 0; }
+.isla-plays { font-size: 13px; font-weight: 600; color: var(--red); font-family: 'Space Mono', monospace; }
+.isla-loved { font-size: 10px; color: var(--gold); }
+
+/* ══════════════════════════════════════
+   RETROVISOR
+══════════════════════════════════════ */
+.retro-tabs { display: flex; gap: 6px; margin-bottom: 22px; flex-wrap: wrap; }
+.retro-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap: 14px; }
+.retro-card { background: var(--bg3); border: 1px solid var(--border); overflow: hidden; }
+.retro-head { background: var(--bg4); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.retro-year { font-family: 'Space Grotesk', sans-serif; font-size: 18px; font-weight: 700; color: var(--red); }
+.retro-ago { font-size: 10px; color: var(--text3); font-family: 'Space Mono', monospace; }
+.retro-track {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px 14px; cursor: pointer; transition: background 0.1s;
+}
+.retro-track:hover { background: var(--bg4); }
+.rt-num { width: 16px; font-size: 10px; color: var(--text3); font-family: 'Space Mono', monospace; }
+.rt-img { width: 26px; height: 26px; background: var(--bg4); flex-shrink: 0; object-fit: cover; }
+.rt-info { flex: 1; min-width: 0; }
+.rt-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rt-artist { font-size: 10px; color: var(--text2); }
+
+/* ══════════════════════════════════════
+   DISCOGS SETUP
+══════════════════════════════════════ */
+.discogs-setup {
+  max-width: 480px;
+  margin: 60px auto;
+  text-align: center;
+}
+.discogs-setup .disc-icon { font-size: 52px; margin-bottom: 20px; opacity: 0.5; }
+.discogs-setup h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px; font-weight: 700; margin-bottom: 8px;
+}
+.discogs-setup p { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 20px; }
+.discogs-setup a { color: var(--vinyl-ac); }
+.setup-row { display: flex; gap: 8px; }
+.setup-row input { flex: 1; }
+
+/* ══════════════════════════════════════
+   DISCOGS COLECCIÓN — GRID
+══════════════════════════════════════ */
+.collection-toolbar {
+  display: flex; gap: 10px; align-items: center;
+  margin-bottom: 22px; flex-wrap: wrap;
+}
+.collection-toolbar input[type=search] { flex: 1; min-width: 180px; max-width: 280px; }
+.collection-toolbar input[type=search]:focus { border-color: var(--vinyl-ac); }
+.collection-toolbar select:focus { border-color: var(--vinyl-ac); }
+
+.collection-stats {
+  display: flex; gap: 20px; align-items: center; margin-bottom: 22px; flex-wrap: wrap;
+}
+.cstat { font-size: 12px; color: var(--text2); }
+.cstat strong { color: var(--text); font-family: 'Space Grotesk', sans-serif; font-size: 15px; }
+
+/* RECORD GRID */
+.record-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+.record-card {
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  transition: border-color 0.15s, transform 0.15s;
+  aspect-ratio: 1;
+}
+.record-card:hover { border-color: var(--vinyl-ac); transform: translateY(-2px); }
+.record-card:hover .record-overlay { opacity: 1; }
+.record-cover {
+  width: 100%; height: 100%; object-fit: cover;
+  display: block;
+}
+.record-no-cover {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; color: var(--text3); font-size: 11px; text-align: center; padding: 12px;
+}
+.record-no-cover .vinyl-svg { font-size: 32px; opacity: 0.2; }
+.record-no-cover span { line-height: 1.3; }
+
+.record-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.4) 55%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 12px;
+}
+.rec-title { font-size: 12px; font-weight: 600; font-family: 'Space Grotesk', sans-serif; line-height: 1.3; }
+.rec-artist { font-size: 10px; color: rgba(232,224,212,0.7); margin-top: 2px; }
+.rec-meta { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }
+.rec-meta .tag { font-size: 8px; padding: 1px 5px; background: rgba(0,0,0,0.6); }
+.rec-play-btn {
+  position: absolute; top: 8px; right: 8px;
+  width: 28px; height: 28px;
+  background: rgba(123,104,238,0.85);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #fff;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.record-card:hover .rec-play-btn { opacity: 1; }
+
+/* FORMAT BADGE bottom-left on non-hover */
+.rec-format-badge {
+  position: absolute; bottom: 6px; left: 6px;
+  font-size: 8px; font-family: 'Space Mono', monospace;
+  background: rgba(0,0,0,0.7); color: var(--vinyl-ac);
+  padding: 2px 5px; text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* DETAIL MODAL */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75);
+  z-index: 500;
+  align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  max-width: 640px; width: 100%;
+  display: grid; grid-template-columns: 200px 1fr;
+  overflow: hidden;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-cover { width: 200px; flex-shrink: 0; }
+.modal-cover img { width: 100%; display: block; }
+.modal-cover .no-cover {
+  width: 200px; height: 200px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg3); color: var(--text3); font-size: 36px;
+}
+.modal-info { padding: 22px 22px 22px 20px; }
+.modal-title { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; line-height: 1.3; margin-bottom: 4px; }
+.modal-artist { font-size: 14px; color: var(--vinyl-ac); margin-bottom: 14px; font-weight: 500; }
+.modal-row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 14px; }
+.modal-field .lbl { font-size: 9px; color: var(--text3); text-transform: uppercase; font-family: 'Space Mono', monospace; margin-bottom: 2px; }
+.modal-field .val { font-size: 13px; }
+.modal-tracklist { margin-top: 14px; }
+.modal-tracklist h4 { font-size: 10px; color: var(--text3); text-transform: uppercase; font-family: 'Space Mono', monospace; margin-bottom: 8px; }
+.modal-track { font-size: 12px; padding: 5px 0; border-top: 1px solid var(--border); display: flex; gap: 10px; cursor: pointer; }
+.modal-track:hover { color: var(--vinyl-ac); }
+.modal-track-num { color: var(--text3); width: 22px; flex-shrink: 0; }
+.modal-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.modal-close { position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--text2); font-size: 20px; cursor: pointer; z-index: 10; }
+
+/* pagination */
+.pagination { display: flex; gap: 6px; align-items: center; margin-top: 22px; flex-wrap: wrap; }
+.page-info { font-size: 12px; color: var(--text2); font-family: 'Space Mono', monospace; margin-left: auto; }
+
+/* wantlist */
+.want-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.want-card {
+  position: relative; background: var(--bg3); border: 1px solid var(--border);
+  overflow: hidden; aspect-ratio: 1; cursor: pointer; transition: border-color 0.15s;
+}
+.want-card:hover { border-color: var(--gold); }
+.want-card img { width: 100%; height: 100%; object-fit: cover; }
+.want-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%);
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 10px;
+}
+.want-title { font-size: 11px; font-weight: 600; line-height: 1.3; }
+.want-artist { font-size: 9px; color: rgba(232,224,212,0.6); }
+
+/* ══════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════ */
+@media (max-width: 860px) {
+  #sidebar { width: 56px; }
+  .logo h1 span, .logo p, nav a > span:last-child, .nav-section-label, .sidebar-footer .badge-name, .sidebar-footer .badge-sub { display: none; }
+  nav a { padding: 12px 0; justify-content: center; }
+  #main { margin-left: 56px; }
+  .panel-body, .panel-header { padding-left: 16px; padding-right: 16px; }
+  .home-hero { grid-template-columns: 1fr; margin: 0 0 20px; }
+  .home-body { grid-template-columns: 1fr; padding: 0 16px 32px; }
+  .isla-layout { grid-template-columns: 1fr; }
+  .modal { grid-template-columns: 1fr; }
+  .modal-cover { width: 100%; }
+  .modal-cover img { max-height: 200px; object-fit: cover; }
+  .ia-grid { grid-template-columns: 1fr; }
+  .time-stats { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════════ SIDEBAR ════════════ -->
+<aside id="sidebar">
+  <div class="logo">
+    <h1><span class="kino">Kino</span><span class="record">Record</span></h1>
+    <p>kinoluiggi · 2008–2026</p>
+  </div>
+
+  <nav>
+    <div class="nav-section">
+      <div class="nav-section-label lastfm-label">Escucha</div>
+      <a class="active-lastfm" onclick="show('home')" data-p="home">
+        <span class="ico">⬛</span><span>Dashboard</span>
+      </a>
+      <a onclick="show('player')" data-p="player">
+        <span class="ico">▶</span><span>KinoPlayer</span>
+      </a>
+      <a onclick="show('timemachine')" data-p="timemachine">
+        <span class="ico">◷</span><span>Máquina del Tiempo</span>
+      </a>
+      <a onclick="show('ia')" data-p="ia">
+        <span class="ico">✦</span><span>Playlist IA</span>
+      </a>
+      <a onclick="show('isla')" data-p="isla">
+        <span class="ico">♥</span><span>Isla Desierta</span>
+      </a>
+      <a onclick="show('retrovisor')" data-p="retrovisor">
+        <span class="ico">⟳</span><span>Retrovisor</span>
+      </a>
+    </div>
+
+    <hr class="sidebar-divider">
+
+    <div class="nav-section">
+      <div class="nav-section-label vinyl-label">Colección</div>
+      <a onclick="show('collection')" data-p="collection">
+        <span class="ico">💿</span><span>Vinilos</span>
+      </a>
+      <a onclick="show('wantlist')" data-p="wantlist">
+        <span class="ico">★</span><span>Wantlist</span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-badge">
+      <img id="user-avatar" src="https://lastfm.freetls.fastly.net/i/u/avatar170s/4f134c3172bf4c47cc8cd544fbee7ef3.png" alt="">
+      <div>
+        <div class="badge-name">kinoluiggi</div>
+        <div class="badge-sub" id="sb-sub">cargando…</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ════════════ MAIN ════════════ -->
+<main id="main">
+
+  <!-- ══ HOME ══ -->
+  <section class="panel panel-lastfm active" id="panel-home">
+    <div class="home-hero" id="home-hero">
+      <div class="home-hero-half">
+        <h3 class="lastfm">● Last.fm — Escucha</h3>
+        <div class="hero-stats" id="hero-lastfm">
+          <div class="hero-stat"><div class="val" id="hs-scrobbles">—</div><div class="lbl">scrobbles</div></div>
+          <div class="hero-stat"><div class="val">10,658</div><div class="lbl">artistas</div></div>
+          <div class="hero-stat"><div class="val">978</div><div class="lbl">loved</div></div>
+          <div class="hero-stat"><div class="val" id="hs-years">—</div><div class="lbl">años</div></div>
+        </div>
+      </div>
+      <div class="home-hero-half">
+        <h3 class="vinyl">◉ Discogs — Colección</h3>
+        <div class="hero-stats" id="hero-discogs">
+          <div class="hero-stat"><div class="val" id="hs-records">—</div><div class="lbl">registros</div></div>
+          <div class="hero-stat"><div class="val" id="hs-want">—</div><div class="lbl">en wantlist</div></div>
+        </div>
+        <p style="font-size:11px;color:var(--text3);margin-top:10px" id="hs-discogs-hint"></p>
+      </div>
+    </div>
+    <div class="home-body">
+      <div class="home-section">
+        <h4>Scrobbles recientes</h4>
+        <div id="home-recent"><div class="loading"><div class="spinner"></div>cargando…</div></div>
+      </div>
+      <div class="home-section">
+        <h4>Últimos en colección</h4>
+        <div id="home-vinyl"><div class="loading"><div class="spinner spinner-vinyl"></div>cargando…</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ KINOPLAYER ══ -->
+  <section class="panel panel-lastfm" id="panel-player">
+    <div class="panel-header">
+      <div class="panel-header-left"><h2>KinoPlayer</h2><p>Tu biblioteca via YouTube</p></div>
+    </div>
+    <div class="panel-body">
+      <div class="now-playing">
+        <div class="spectrum" id="spectrum">
+          <div class="s-bar" style="height:4px"></div>
+          <div class="s-bar" style="height:14px"></div>
+          <div class="s-bar" style="height:9px"></div>
+          <div class="s-bar" style="height:18px"></div>
+          <div class="s-bar" style="height:7px"></div>
+        </div>
+        <div id="np-info">
+          <div id="np-track" style="color:var(--text3)">Selecciona un track</div>
+          <div id="np-artist"></div>
+        </div>
+        <span id="np-meta" class="tag">—</span>
+      </div>
+
+      <div class="yt-wrap" id="yt-wrap">
+        <div class="yt-placeholder" id="yt-ph">
+          <div class="yt-icon">▷</div>
+          <span style="font-size:12px">Elige un track</span>
+        </div>
+        <div id="yt-embed"></div>
+      </div>
+
+      <div class="ctrl-row">
+        <span style="font-size:11px;color:var(--text3)">Período:</span>
+        <button class="btn-ghost on" onclick="loadTracks('7day',this)">7d</button>
+        <button class="btn-ghost" onclick="loadTracks('1month',this)">1m</button>
+        <button class="btn-ghost" onclick="loadTracks('3month',this)">3m</button>
+        <button class="btn-ghost" onclick="loadTracks('12month',this)">12m</button>
+        <button class="btn-ghost" onclick="loadTracks('overall',this)">Todo</button>
+        <div class="ctrl-sep"></div>
+        <button class="btn-ghost" onclick="loadLoved(this)">♥ Loved</button>
+      </div>
+      <div id="pl-tracks"><div class="loading"><div class="spinner"></div>cargando…</div></div>
+    </div>
+  </section>
+
+  <!-- ══ MÁQUINA DEL TIEMPO ══ -->
+  <section class="panel panel-lastfm" id="panel-timemachine">
+    <div class="panel-header">
+      <div class="panel-header-left"><h2>Máquina del Tiempo</h2><p>¿Qué escuchabas en una fecha exacta?</p></div>
+    </div>
+    <div class="panel-body">
+      <div class="dt-row">
+        <div><label>Fecha</label><input type="date" id="dt-date"></div>
+        <button class="btn" onclick="timeMachine()">Viajar</button>
+        <button class="btn-ghost" onclick="randomDate()">Fecha aleatoria</button>
+      </div>
+      <div id="tm-stats" style="display:none" class="time-stats">
+        <div class="ts-stat"><div class="lbl">Scrobbles</div><div class="val" id="tm-count">—</div></div>
+        <div class="ts-stat"><div class="lbl">Primer track</div><div class="val" id="tm-first" style="font-size:13px">—</div><div class="sub" id="tm-fa">—</div></div>
+        <div class="ts-stat"><div class="lbl">Último track</div><div class="val" id="tm-last" style="font-size:13px">—</div><div class="sub" id="tm-la">—</div></div>
+      </div>
+      <div id="tm-results"></div>
+    </div>
+  </section>
+
+  <!-- ══ IA PLAYLIST ══ -->
+  <section class="panel panel-lastfm" id="panel-ia">
+    <div class="panel-header">
+      <div class="panel-header-left"><h2>Playlist IA</h2><p>Claude genera playlists narrativas desde tu historial</p></div>
+    </div>
+    <div class="panel-body">
+      <div class="ia-key-row">
+        <div class="f"><label>Anthropic API Key</label><input type="password" id="ant-key" placeholder="sk-ant-…" style="width:100%"></div>
+        <button class="btn-ghost" onclick="toggleKey()">👁</button>
+      </div>
+      <div class="ia-grid">
+        <div><label>Período</label>
+          <select id="ia-period">
+            <option value="7day">7 días</option>
+            <option value="1month" selected>1 mes</option>
+            <option value="3month">3 meses</option>
+            <option value="12month">12 meses</option>
+            <option value="overall">Histórico</option>
+          </select>
+        </div>
+        <div><label>Mood / contexto</label><input type="text" id="ia-mood" placeholder="ej: tarde de jazz, sesión de trabajo, madrugada"></div>
+        <div class="full"><label>Instrucciones adicionales</label><textarea id="ia-extra" placeholder="ej: quiero descubrimientos de mi historial que raramente reproduzco"></textarea></div>
+      </div>
+      <button class="btn" id="ia-btn" onclick="genPlaylist()">✦ Generar playlist</button>
+      <div id="ia-result"></div>
+    </div>
+  </section>
+
+  <!-- ══ ISLA DESIERTA ══ -->
+  <section class="panel panel-lastfm" id="panel-isla">
+    <div class="panel-header">
+      <div class="panel-header-left"><h2>Isla Desierta</h2><p>Tu núcleo duro: los tracks que más has escuchado & amado</p></div>
+    </div>
+    <div class="panel-body">
+      <div class="ctrl-row" style="margin-bottom:18px">
+        <button class="btn-ghost on" onclick="loadIsla('overall',this)">Histórico</button>
+        <button class="btn-ghost" onclick="loadIsla('12month',this)">12 meses</button>
+        <button class="btn-ghost" onclick="loadIsla('3month',this)">3 meses</button>
+      </div>
+      <div class="isla-layout">
+        <div>
+          <div class="constellation-wrap"><canvas id="c-canvas"></canvas></div>
+          <div class="constellation-note">⬤ rojo = plays · ⬤ dorado = loved</div>
+        </div>
+        <div id="isla-list"><div class="loading"><div class="spinner"></div>calculando…</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ RETROVISOR ══ -->
+  <section class="panel panel-lastfm" id="panel-retrovisor">
+    <div class="panel-header">
+      <div class="panel-header-left"><h2>Retrovisor</h2><p>Hoy, pero hace N años</p></div>
+    </div>
+    <div class="panel-body">
+      <div class="retro-tabs" id="retro-tabs"></div>
+      <div id="retro-content"><div class="loading"><div class="spinner"></div>calculando…</div></div>
+    </div>
+  </section>
+
+  <!-- ══ COLECCIÓN ══ -->
+  <section class="panel panel-vinyl" id="panel-collection">
+    <div class="panel-header">
+      <div class="panel-header-left"><h2>Colección de vinilos</h2><p>Discogs · kinoluiggi</p></div>
+    </div>
+    <div class="panel-body" id="collection-body">
+      <div class="loading"><div class="spinner spinner-vinyl"></div>inicializando…</div>
+    </div>
+  </section>
+
+  <!-- ══ WANTLIST ══ -->
+  <section class="panel panel-vinyl" id="panel-wantlist">
+    <div class="panel-header">
+      <div class="panel-header-left"><h2>Wantlist</h2><p>Lo que quieres conseguir</p></div>
+    </div>
+    <div class="panel-body" id="wantlist-body">
+      <div class="loading"><div class="spinner spinner-vinyl"></div>cargando…</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ════════════ MODAL DETALLE ════════════ -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div class="modal-cover" id="modal-cover"></div>
+    <div class="modal-info" id="modal-info"></div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   CONFIG & STATE
+════════════════════════════════════════ */
+const LFM_KEY  = '6b8d7a206bd7449cedb73dc6182d028e';
+const LFM_USER = 'kinoluiggi';
+const DG_USER  = 'kinoluiggi';
+const LFM_API  = 'https://ws.audioscrobbler.com/2.0/';
+const DG_API   = 'https://api.discogs.com';
+
+let dgToken      = localStorage.getItem('dg_token') || '';
+let collectionAll = [];   // full fetched collection
+let collectionFiltered = [];
+let collPage     = 1;
+const PER_PAGE   = 50;
+let islaData     = [];
+let lovedSet     = new Set();
+let _playerTracks = [];
+
+/* ════════════════════════════════════════
+   UTILS
+════════════════════════════════════════ */
+async function lfm(p) {
+  const u = new URL(LFM_API);
+  u.search = new URLSearchParams({ ...p, user: LFM_USER, api_key: LFM_KEY, format: 'json' });
+  return (await fetch(u)).json();
+}
+
+async function dg(path, params = {}) {
+  const u = new URL(DG_API + path);
+  Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, v));
+  const headers = { 'User-Agent': 'KinoRecord/1.0', Accept: 'application/vnd.discogs.v2.plaintext+json' };
+  if (dgToken) headers['Authorization'] = `Discogs token=${dgToken}`;
+  const r = await fetch(u, { headers });
+  if (!r.ok) throw new Error(`Discogs ${r.status}`);
+  return r.json();
+}
+
+const img = (t, idx = 1) => t?.image?.[idx]?.['#text'] || t?.image?.[0]?.['#text'] || '';
+const timeAgo = ts => {
+  const d = Date.now()/1000 - ts;
+  if (d < 60) return 'ahora'; if (d < 3600) return ~~(d/60)+'m';
+  if (d < 86400) return ~~(d/3600)+'h'; return ~~(d/86400)+'d';
+};
+const esc = s => String(s||'').replace(/'/g,"\\'");
+const q = id => document.getElementById(id);
+
+function playYT(query, track, artist, meta = '') {
+  document.getElementById('np-track').textContent = track || query;
+  document.getElementById('np-artist').textContent = artist;
+  document.getElementById('np-meta').textContent = meta || '▶';
+  q('spectrum').classList.add('playing');
+  const ph = q('yt-ph'); if (ph) ph.style.display = 'none';
+  const enc = encodeURIComponent(query);
+  q('yt-embed').innerHTML = `<iframe src="https://www.youtube.com/embed?listType=search&list=${enc}&autoplay=1"
+    allow="autoplay;encrypted-media" allowfullscreen style="width:100%;height:100%;border:none"></iframe>`;
+  document.querySelectorAll('.track-item.now, .pl-item.now').forEach(e => e.classList.remove('now'));
+}
+
+/* ════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════ */
+let _loaded = {};
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => { a.classList.remove('active-lastfm','active-vinyl'); });
+  q('panel-'+id).classList.add('active');
+  const link = document.querySelector(`[data-p="${id}"]`);
+  if (link) link.classList.add(id === 'collection' || id === 'wantlist' ? 'active-vinyl' : 'active-lastfm');
+
+  if (!_loaded[id]) { _loaded[id] = true; lazyLoad(id); }
+}
+
+function lazyLoad(id) {
+  if (id === 'player')      loadTracks('7day', document.querySelector('[onclick*="7day"]'));
+  if (id === 'isla')        loadIsla('overall', null);
+  if (id === 'retrovisor')  loadRetrovisor();
+  if (id === 'timemachine') { const d = q('dt-date'); if (!d.value) { const dt = new Date(); dt.setFullYear(dt.getFullYear()-5); d.value = dt.toISOString().split('T')[0]; } }
+  if (id === 'collection')  initCollection();
+  if (id === 'wantlist')    initWantlist();
+}
+
+/* ════════════════════════════════════════
+   HOME
+════════════════════════════════════════ */
+async function loadHome() {
+  // Last.fm
+  const [info, rt] = await Promise.all([
+    lfm({ method: 'user.getinfo' }),
+    lfm({ method: 'user.getrecenttracks', limit: 7, extended: 1 })
+  ]);
+  if (info.user) {
+    const u = info.user;
+    q('hs-scrobbles').textContent = (+u.playcount).toLocaleString();
+    const yrs = Math.floor((Date.now()/1000 - u.registered?.unixtime) / (365.25*86400));
+    q('hs-years').textContent = yrs;
+    q('sb-sub').textContent = (+u.playcount).toLocaleString()+' scrobbles';
+    if (u.image?.[2]?.['#text']) q('user-avatar').src = u.image[2]['#text'];
+  }
+  if (rt.recenttracks?.track) {
+    const tracks = rt.recenttracks.track;
+    q('home-recent').innerHTML = tracks.slice(0,6).map((t,i) => {
+      const live = i===0 && t['@attr']?.nowplaying;
+      const when = live ? '<span class="live-dot"></span>' : (t.date ? timeAgo(t.date.uts) : '—');
+      const imgUrl = img(t);
+      const qstr = `${t.artist?.['#text']||''} ${t.name}`;
+      return `<div class="recent-item" onclick="playYT('${esc(qstr)}','${esc(t.name)}','${esc(t.artist?.['#text']||'')}','')">
+        ${imgUrl?`<img class="ri-img" src="${imgUrl}" alt="">`:'<div class="ri-img"></div>'}
+        <div class="ri-info"><div class="ri-name">${t.name}</div><div class="ri-sub">${t.artist?.['#text']||''}</div></div>
+        <div class="ri-meta">${when}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Discogs home preview
+  loadDiscogsHomePreview();
+}
+
+async function loadDiscogsHomePreview() {
+  if (!dgToken) {
+    q('home-vinyl').innerHTML = `<div class="empty"><div class="emo">💿</div>Agrega tu token de Discogs<br>en la sección <strong>Colección</strong></div>`;
+    q('hs-discogs-hint').textContent = 'Conecta tu token en Colección →';
+    return;
+  }
+  try {
+    const [col, want] = await Promise.all([
+      dg(`/users/${DG_USER}/collection/folders/0/releases`, { per_page: 6, sort: 'added', sort_order: 'desc' }),
+      dg(`/users/${DG_USER}/wants`, { per_page: 1 })
+    ]);
+    q('hs-records').textContent = (col.pagination?.items || '—').toLocaleString();
+    q('hs-want').textContent = (want.pagination?.items || '—').toLocaleString();
+
+    const releases = col.releases || [];
+    q('home-vinyl').innerHTML = releases.map(r => {
+      const bi = r.basic_information;
+      const cover = bi.cover_image || bi.thumb || '';
+      const artist = bi.artists?.map(a=>a.name).join(', ') || '';
+      return `<div class="recent-item" onclick="show('collection')">
+        ${cover?`<img class="ri-img" src="${cover}" alt="">`:'<div class="ri-img" style="font-size:18px;display:flex;align-items:center;justify-content:center;color:var(--text3)">💿</div>'}
+        <div class="ri-info"><div class="ri-name">${bi.title}</div><div class="ri-sub">${artist}</div></div>
+        <div class="ri-meta" style="color:var(--vinyl-ac)">${bi.year||''}</div>
+      </div>`;
+    }).join('') || '<div class="empty">Sin registros</div>';
+  } catch(e) {
+    q('home-vinyl').innerHTML = `<div class="empty"><div class="emo">⚠️</div>Error al cargar Discogs</div>`;
+  }
+}
+
+/* ════════════════════════════════════════
+   KINOPLAYER
+════════════════════════════════════════ */
+async function loadTracks(period, btn) {
+  document.querySelectorAll('.ctrl-row .btn-ghost').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  const el = q('pl-tracks');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>cargando…</div>';
+  const data = await lfm({ method: 'user.gettoptracks', period, limit: 50 });
+  _playerTracks = data.toptracks?.track || [];
+  renderTracks(_playerTracks, el, false);
+}
+
+async function loadLoved(btn) {
+  document.querySelectorAll('.ctrl-row .btn-ghost').forEach(b => b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  const el = q('pl-tracks');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>cargando loved…</div>';
+  const data = await lfm({ method: 'user.getlovedtracks', limit: 50 });
+  _playerTracks = data.lovedtracks?.track || [];
+  renderTracks(_playerTracks, el, true);
+}
+
+function renderTracks(tracks, el, loved) {
+  if (!tracks.length) { el.innerHTML = '<div class="empty">Sin resultados</div>'; return; }
+  el.innerHTML = `<div class="track-list">${tracks.map((t,i) => {
+    const imgUrl = img(t);
+    const artist = t.artist?.name || t.artist?.['#text'] || '';
+    const plays = t.playcount ? `${t.playcount}×` : '';
+    const qstr = `${artist} ${t.name}`;
+    return `<div class="track-item" onclick="playYT('${esc(qstr)}','${esc(t.name)}','${esc(artist)}','${plays}')">
+      <span class="t-num">${i+1}</span>
+      ${imgUrl?`<img class="t-img" src="${imgUrl}" alt="">`:'<div class="t-img"></div>'}
+      <div class="t-info"><div class="t-name">${t.name}</div><div class="t-artist">${artist}</div></div>
+      ${loved?'<span class="t-love">♥</span>':''}
+      <span class="t-plays">${plays}</span>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+/* ════════════════════════════════════════
+   MÁQUINA DEL TIEMPO
+════════════════════════════════════════ */
+async function timeMachine() {
+  const val = q('dt-date').value;
+  if (!val) return;
+  const d = new Date(val + 'T00:00:00');
+  const from = Math.floor(d.getTime()/1000);
+  const to   = from + 86399;
+  const el   = q('tm-results');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>viajando…</div>';
+  q('tm-stats').style.display = 'none';
+  const data = await lfm({ method: 'user.getrecenttracks', from, to, limit: 200, extended: 1 });
+  const rt = data.recenttracks;
+  if (!rt?.track || (Array.isArray(rt.track) && !rt.track.length)) {
+    el.innerHTML = '<div class="empty"><div class="emo">🌌</div>Sin scrobbles esta fecha. Prueba otra.</div>'; return;
+  }
+  const tracks = Array.isArray(rt.track) ? rt.track : [rt.track];
+  const total  = rt['@attr']?.total || tracks.length;
+  q('tm-count').textContent = (+total).toLocaleString();
+  const dated = tracks.filter(t => t.date);
+  if (dated.length) {
+    const first = dated[dated.length-1], last = dated[0];
+    q('tm-first').textContent = first.name; q('tm-fa').textContent = first.artist?.['#text']||'';
+    q('tm-last').textContent  = last.name;  q('tm-la').textContent  = last.artist?.['#text']||'';
+  }
+  q('tm-stats').style.display = 'grid';
+  const dateLabel = d.toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  el.innerHTML = `<div style="margin-bottom:14px;display:flex;align-items:center;gap:10px">
+    <span class="tag red">${dateLabel}</span>
+    <span style="font-size:11px;color:var(--text2)">${total} tracks</span>
+  </div>
+  <div class="track-list">${dated.map((t,i) => {
+    const imgUrl = img(t);
+    const artist = t.artist?.['#text']||'';
+    const time   = t.date?.['#text']?.split(',')[1]?.trim()||'';
+    const loved  = t.loved==='1'?'<span class="t-love">♥</span>':'';
+    const qstr   = `${artist} ${t.name}`;
+    return `<div class="track-item" onclick="playYT('${esc(qstr)}','${esc(t.name)}','${esc(artist)}','')">
+      <span class="t-num">${i+1}</span>
+      ${imgUrl?`<img class="t-img" src="${imgUrl}" alt="">`:'<div class="t-img"></div>'}
+      <div class="t-info"><div class="t-name">${t.name}</div><div class="t-artist">${artist}</div></div>
+      ${loved}<span class="t-plays" style="font-size:10px;color:var(--text3)">${time}</span>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function randomDate() {
+  const s = new Date('2008-09-20'), e = new Date();
+  const r = new Date(s.getTime() + Math.random()*(e.getTime()-s.getTime()));
+  q('dt-date').value = r.toISOString().split('T')[0];
+  timeMachine();
+}
+
+/* ════════════════════════════════════════
+   IA PLAYLIST
+════════════════════════════════════════ */
+function toggleKey() { const i=q('ant-key'); i.type = i.type==='password'?'text':'password'; }
+
+async function genPlaylist() {
+  const apiKey = q('ant-key').value.trim();
+  if (!apiKey) { alert('Ingresa tu Anthropic API key'); return; }
+  const period = q('ia-period').value;
+  const mood   = q('ia-mood').value;
+  const extra  = q('ia-extra').value;
+  const btn    = q('ia-btn'); btn.textContent='✦ Generando…'; btn.disabled=true;
+  const el     = q('ia-result');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>consultando historial…</div>';
+  try {
+    const [tt, ta, lt] = await Promise.all([
+      lfm({ method:'user.gettoptracks', period, limit:30 }),
+      lfm({ method:'user.gettopartists', period, limit:20 }),
+      lfm({ method:'user.getlovedtracks', limit:20 })
+    ]);
+    const tracks  = (tt.toptracks?.track||[]).map(t=>`${t.name} — ${t.artist?.name} (${t.playcount}×)`).join('\n');
+    const artists = (ta.topartists?.artist||[]).map(a=>`${a.name} (${a.playcount}×)`).join(', ');
+    const loved   = (lt.lovedtracks?.track||[]).slice(0,10).map(t=>`${t.name} — ${t.artist?.name}`).join('\n');
+    const plabels = {'7day':'7 días','1month':'1 mes','3month':'3 meses','12month':'12 meses','overall':'histórico'};
+    el.innerHTML = '<div class="loading"><div class="spinner"></div>Claude curating…</div>';
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body: JSON.stringify({
+        model:'claude-sonnet-4-6', max_tokens:1500,
+        system:`Eres un curador musical experto. Responde SOLO en JSON válido (sin markdown, sin backticks):
+{"title":"string","narrative":"string","tracks":[{"artist":"string","track":"string","reason":"string"}]}
+Crea exactamente 12 tracks. Usa artistas del historial. Sé poético y específico.`,
+        messages:[{role:'user',content:`Crea una playlist narrativa basada en mi historial Last.fm (${plabels[period]}).
+
+TOP TRACKS:\n${tracks}
+
+TOP ARTISTAS: ${artists}
+
+LOVED RECIENTES:\n${loved}
+
+MOOD: ${mood||'libre'}
+${extra?`\nINSTRUCCIONES: ${extra}`:''}`}]
+      })
+    });
+    const data = await res.json();
+    const txt  = data.content?.[0]?.text||'';
+    let pl;
+    try { pl = JSON.parse(txt.replace(/```json|```/g,'').trim()); }
+    catch { el.innerHTML=`<div style="padding:16px;color:var(--red)">Error de parseo. Intenta de nuevo.</div>`; return; }
+    el.innerHTML = `<div class="pl-result">
+      <div class="pl-title">${pl.title}</div>
+      <div class="pl-narrative">${pl.narrative}</div>
+      ${(pl.tracks||[]).map((t,i)=>{
+        const qstr = `${t.artist} ${t.track}`;
+        return `<div class="pl-item" onclick="playYT('${esc(qstr)}','${esc(t.track)}','${esc(t.artist)}','')">
+          <span class="pl-num">${i+1}</span>
+          <div class="pl-info"><div class="pl-name">${t.track}</div><div class="pl-artist">${t.artist}</div></div>
+          <span class="pl-reason">${t.reason}</span>
+        </div>`;
+      }).join('')}
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+        <button class="btn-ghost" onclick="genPlaylist()">↻ Otra versión</button>
+        <span style="font-size:11px;color:var(--text3);margin-left:10px">Clic en track → YouTube</span>
+      </div>
+    </div>`;
+  } catch(e) {
+    el.innerHTML=`<div style="padding:16px;color:var(--red)">Error: ${e.message}</div>`;
+  } finally { btn.textContent='✦ Generar playlist'; btn.disabled=false; }
+}
+
+/* ════════════════════════════════════════
+   ISLA DESIERTA
+════════════════════════════════════════ */
+async function loadIsla(period, btn) {
+  document.querySelectorAll('#panel-isla .btn-ghost').forEach(b=>b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  q('isla-list').innerHTML='<div class="loading"><div class="spinner"></div>calculando…</div>';
+  const [tt, lt] = await Promise.all([
+    lfm({method:'user.gettoptracks',period,limit:200}),
+    lfm({method:'user.getlovedtracks',limit:200})
+  ]);
+  lovedSet = new Set((lt.lovedtracks?.track||[]).map(t=>`${t.artist?.name}::${t.name}`));
+  const tracks = tt.toptracks?.track||[];
+  islaData = tracks.map(t=>{
+    const loved = lovedSet.has(`${t.artist?.name}::${t.name}`);
+    return {...t, loved, score: Math.log(+t.playcount+1)*2+(loved?5:0)};
+  }).sort((a,b)=>b.score-a.score).slice(0,20);
+  const el = q('isla-list');
+  el.innerHTML = `<div class="isla-list">${islaData.map((t,i)=>{
+    const imgUrl = img(t);
+    const artist = t.artist?.name||'';
+    const qstr   = `${artist} ${t.name}`;
+    const rCls   = i<3?'g':''; const rTxt = i<3?['♛','♟','♜'][i]:(i+1);
+    return `<div class="isla-item ${i<3?'top':''}" onclick="playYT('${esc(qstr)}','${esc(t.name)}','${esc(artist)}','${t.playcount}×')">
+      <span class="isla-rank ${rCls}">${rTxt}</span>
+      ${imgUrl?`<img class="isla-img" src="${imgUrl}" alt="">`:'<div class="isla-img"></div>'}
+      <div class="isla-info"><div class="isla-name">${t.name}</div><div class="isla-artist">${artist}</div></div>
+      <div class="isla-score"><div class="isla-plays">${t.playcount}</div>${t.loved?'<div class="isla-loved">♥</div>':''}</div>
+    </div>`;
+  }).join('')}</div>`;
+  drawStars(islaData);
+}
+
+function drawStars(data) {
+  const canvas = q('c-canvas');
+  const wrap   = canvas.parentElement;
+  canvas.width  = wrap.offsetWidth || 340;
+  canvas.height = 320;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle='#0a0a0a'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const max = Math.max(...data.map(d=>d.score));
+  const pts = data.slice(0,15).map((d,i)=>{
+    const a = (i/15)*Math.PI*2 + (Math.random()-.5)*.6;
+    const r = 50 + Math.random()*(Math.min(canvas.width,canvas.height)/2-60);
+    return { x: canvas.width/2+Math.cos(a)*r, y: canvas.height/2+Math.sin(a)*r*.8,
+             s: 2+(d.score/max)*9, loved: d.loved };
+  });
+  ctx.strokeStyle='rgba(123,104,238,0.07)'; ctx.lineWidth=0.5;
+  pts.forEach((p,i)=>pts.slice(i+1).forEach(q2=>{
+    if (Math.hypot(p.x-q2.x,p.y-q2.y)<130){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q2.x,q2.y);ctx.stroke();}
+  }));
+  pts.forEach(p=>{
+    const col = p.loved?'#c8a96e':'#ff4136';
+    const g   = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.s*2.5);
+    g.addColorStop(0,col); g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,p.s*2.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=p.loved?'#c8a96e':'#e8e0d4';
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,Math.PI*2); ctx.fill();
+  });
+}
+
+/* ════════════════════════════════════════
+   RETROVISOR
+════════════════════════════════════════ */
+async function loadRetrovisor() {
+  const now = new Date();
+  const y   = now.getFullYear();
+  const years = Array.from({length:Math.min(8,y-2009+1)},(_,i)=>y-1-i);
+  const tabs = q('retro-tabs');
+  tabs.innerHTML = years.map((yr,i)=>`
+    <button class="btn-ghost${i===0?' on':''}" onclick="loadRetroYear(${yr},this)">${yr} · hace ${y-yr}a</button>
+  `).join('');
+  await loadRetroYear(years[0], tabs.firstElementChild);
+}
+
+async function loadRetroYear(year, btn) {
+  document.querySelectorAll('#retro-tabs .btn-ghost').forEach(b=>b.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  const el = q('retro-content');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>cargando…</div>';
+  const now = new Date();
+  const d   = new Date(`${year}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}T00:00:00`);
+  const from = Math.floor(d.getTime()/1000);
+  const data = await lfm({method:'user.getrecenttracks',from,to:from+86399,limit:50});
+  const tracks = (data.recenttracks?.track||[]).filter(t=>t.date);
+  if (!tracks.length) {
+    el.innerHTML=`<div class="empty"><div class="emo">🌌</div>Sin scrobbles el ${d.toLocaleDateString('es-MX',{day:'numeric',month:'long'})} de ${year}</div>`;
+    return;
+  }
+  el.innerHTML=`<div style="margin-bottom:14px"><span class="tag violet">${d.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</span> <span style="font-size:11px;color:var(--text2);margin-left:8px">${tracks.length} scrobbles</span></div>
+  <div class="retro-grid"><div class="retro-card">
+    <div class="retro-head"><span class="retro-year">${year}</span><span class="retro-ago">hace ${new Date().getFullYear()-year} años</span></div>
+    <div class="retro-tracks">${tracks.slice(0,12).map((t,i)=>{
+      const imgUrl=img(t);
+      const qstr=`${t.artist?.['#text']||''} ${t.name}`;
+      return `<div class="retro-track" onclick="playYT('${esc(qstr)}','${esc(t.name)}','${esc(t.artist?.['#text']||'')}','')">
+        <span class="rt-num">${i+1}</span>
+        ${imgUrl?`<img class="rt-img" src="${imgUrl}" alt="">`:'<div class="rt-img"></div>'}
+        <div class="rt-info"><div class="rt-name">${t.name}</div><div class="rt-artist">${t.artist?.['#text']||''}</div></div>
+      </div>`;
+    }).join('')}</div>
+  </div></div>`;
+}
+
+/* ════════════════════════════════════════
+   DISCOGS — SETUP
+════════════════════════════════════════ */
+function renderSetup(container) {
+  container.innerHTML = `<div class="discogs-setup">
+    <div class="disc-icon">💿</div>
+    <h3>Conecta tu colección de Discogs</h3>
+    <p>Necesitas un <strong>Personal Access Token</strong> de Discogs para ver portadas e info detallada.<br>
+    Genéralo en: <a href="https://www.discogs.com/settings/developers" target="_blank">discogs.com/settings/developers</a> → <em>Generate new token</em></p>
+    <div class="setup-row">
+      <input type="password" id="dg-token-input" placeholder="Token de Discogs…">
+      <button class="btn-vinyl" onclick="saveToken()">Conectar</button>
+    </div>
+    <p style="margin-top:10px;font-size:11px;color:var(--text3)">Se guarda en tu navegador (localStorage), nunca se envía a servidores externos.</p>
+  </div>`;
+}
+
+function saveToken() {
+  const t = q('dg-token-input')?.value?.trim();
+  if (!t) return;
+  dgToken = t;
+  localStorage.setItem('dg_token', t);
+  _loaded['collection'] = false;
+  _loaded['wantlist']   = false;
+  initCollection();
+  loadDiscogsHomePreview();
+}
+
+/* ════════════════════════════════════════
+   DISCOGS — COLECCIÓN
+════════════════════════════════════════ */
+async function initCollection() {
+  const body = q('collection-body');
+  if (!dgToken) { renderSetup(body); return; }
+  body.innerHTML = '<div class="loading"><div class="spinner spinner-vinyl"></div>cargando colección…</div>';
+  try {
+    await fetchFullCollection();
+    renderCollectionUI();
+  } catch(e) {
+    if (e.message.includes('401') || e.message.includes('403')) {
+      dgToken=''; localStorage.removeItem('dg_token');
+      body.innerHTML = `<div class="discogs-setup"><div class="disc-icon">🔑</div><h3>Token inválido</h3><p>El token no funcionó. <a href="https://www.discogs.com/settings/developers" target="_blank">Genera uno nuevo</a>.</p></div>`;
+    } else {
+      body.innerHTML = `<div class="empty"><div class="emo">⚠️</div>${e.message}</div>`;
+    }
+  }
+}
+
+async function fetchFullCollection() {
+  collectionAll = [];
+  let page = 1, pages = 1;
+  while (page <= pages) {
+    const data = await dg(`/users/${DG_USER}/collection/folders/0/releases`,
+      { per_page: 100, page, sort: 'added', sort_order: 'desc' });
+    pages = data.pagination?.pages || 1;
+    collectionAll.push(...(data.releases||[]));
+    if (page >= pages) break;
+    page++;
+  }
+  collectionFiltered = [...collectionAll];
+}
+
+function renderCollectionUI() {
+  const body = q('collection-body');
+
+  // Build unique formats and genres for filters
+  const formats = [...new Set(collectionAll.flatMap(r =>
+    r.basic_information.formats?.map(f=>f.name)||[]))].sort();
+  const genres  = [...new Set(collectionAll.flatMap(r =>
+    r.basic_information.genres||[]))].sort();
+
+  body.innerHTML = `
+    <div class="collection-toolbar">
+      <input type="search" id="coll-search" placeholder="Buscar título, artista, sello…" oninput="filterCollection()">
+      <select id="coll-format" onchange="filterCollection()">
+        <option value="">Todos los formatos</option>
+        ${formats.map(f=>`<option value="${f}">${f}</option>`).join('')}
+      </select>
+      <select id="coll-genre" onchange="filterCollection()">
+        <option value="">Todos los géneros</option>
+        ${genres.map(g=>`<option value="${g}">${g}</option>`).join('')}
+      </select>
+      <select id="coll-sort" onchange="filterCollection()">
+        <option value="added">Reciente primero</option>
+        <option value="year">Año</option>
+        <option value="artist">Artista A-Z</option>
+        <option value="title">Título A-Z</option>
+      </select>
+      <button class="btn-ghost" onclick="dgToken='';localStorage.removeItem('dg_token');initCollection()" style="margin-left:auto;font-size:11px">✕ Desconectar</button>
+    </div>
+    <div class="collection-stats" id="coll-stats"></div>
+    <div class="record-grid" id="record-grid"></div>
+    <div class="pagination" id="coll-pages"></div>
+  `;
+  collPage = 1;
+  filterCollection();
+}
+
+function filterCollection() {
+  const search = q('coll-search')?.value?.toLowerCase()||'';
+  const format = q('coll-format')?.value||'';
+  const genre  = q('coll-genre')?.value||'';
+  const sort   = q('coll-sort')?.value||'added';
+
+  collectionFiltered = collectionAll.filter(r => {
+    const bi = r.basic_information;
+    const artist = bi.artists?.map(a=>a.name).join(' ')||'';
+    const label  = bi.labels?.map(l=>l.name).join(' ')||'';
+    const text   = `${bi.title} ${artist} ${label}`.toLowerCase();
+    if (search && !text.includes(search)) return false;
+    if (format && !bi.formats?.some(f=>f.name===format)) return false;
+    if (genre  && !bi.genres?.includes(genre)) return false;
+    return true;
+  });
+
+  // Sort
+  collectionFiltered.sort((a,b) => {
+    const ba = a.basic_information, bb = b.basic_information;
+    if (sort==='year')   return (ba.year||0)-(bb.year||0);
+    if (sort==='artist') return (ba.artists?.[0]?.name||'').localeCompare(bb.artists?.[0]?.name||'');
+    if (sort==='title')  return ba.title.localeCompare(bb.title);
+    return 0; // added = already desc from API
+  });
+
+  collPage = 1;
+  renderGrid();
+}
+
+function renderGrid() {
+  const total = collectionFiltered.length;
+  const pages = Math.ceil(total / PER_PAGE);
+  const start = (collPage-1)*PER_PAGE;
+  const slice = collectionFiltered.slice(start, start+PER_PAGE);
+
+  // Stats
+  const statsEl = q('coll-stats');
+  if (statsEl) statsEl.innerHTML = `
+    <div class="cstat"><strong>${collectionAll.length.toLocaleString()}</strong> en colección</div>
+    <div class="cstat"><strong>${total.toLocaleString()}</strong> ${total<collectionAll.length?'filtrados':'total'}</div>
+  `;
+
+  // Grid
+  const gridEl = q('record-grid');
+  if (!gridEl) return;
+  if (!slice.length) { gridEl.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="emo">🔍</div>Sin resultados</div>'; return; }
+
+  gridEl.innerHTML = slice.map(r => {
+    const bi     = r.basic_information;
+    const artist = bi.artists?.map(a=>a.name.replace(/\s*\(\d+\)/,'')).join(', ')||'';
+    const cover  = bi.cover_image || bi.thumb || '';
+    const fmt    = bi.formats?.[0]?.name||'';
+    const rid    = r.id;
+    return `<div class="record-card" onclick="openRecord(${rid})">
+      ${cover
+        ? `<img class="record-cover" src="${cover}" alt="${bi.title}" loading="lazy" onerror="this.parentElement.querySelector('.record-overlay').style.opacity=1;this.style.display='none'">`
+        : `<div class="record-no-cover"><div class="vinyl-svg">💿</div><span>${bi.title}</span></div>`
+      }
+      <div class="record-overlay">
+        <div class="rec-title">${bi.title}</div>
+        <div class="rec-artist">${artist}</div>
+        <div class="rec-meta">
+          ${bi.year?`<span class="tag">${bi.year}</span>`:''}
+          ${fmt?`<span class="tag violet">${fmt}</span>`:''}
+        </div>
+      </div>
+      <div class="rec-play-btn">▶</div>
+      ${fmt?`<div class="rec-format-badge">${fmt}</div>`:''}
+    </div>`;
+  }).join('');
+
+  // Pagination
+  const pgEl = q('coll-pages');
+  if (pgEl && pages > 1) {
+    pgEl.innerHTML = `
+      <button class="btn-ghost" ${collPage<=1?'disabled':''} onclick="gotoPage(${collPage-1})">← Ant</button>
+      ${Array.from({length:Math.min(pages,7)},(_,i)=>{
+        const pg = collPage<=4 ? i+1 : collPage-3+i;
+        if (pg<1||pg>pages) return '';
+        return `<button class="btn-ghost${pg===collPage?' on-vinyl':''}" onclick="gotoPage(${pg})">${pg}</button>`;
+      }).join('')}
+      <button class="btn-ghost" ${collPage>=pages?'disabled':''} onclick="gotoPage(${collPage+1})">Sig →</button>
+      <span class="page-info">${start+1}–${Math.min(start+PER_PAGE,total)} de ${total}</span>
+    `;
+  } else if (pgEl) pgEl.innerHTML='';
+}
+
+function gotoPage(pg) {
+  collPage = pg;
+  renderGrid();
+  q('record-grid').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ════════════════════════════════════════
+   DISCOGS — MODAL DETALLE
+════════════════════════════════════════ */
+async function openRecord(releaseId) {
+  const r = collectionAll.find(r=>r.id===releaseId);
+  if (!r) return;
+  const bi = r.basic_information;
+  const artist = bi.artists?.map(a=>a.name.replace(/\s*\(\d+\)/,'')).join(', ')||'';
+  const label  = bi.labels?.map(l=>l.name).join(', ')||'';
+  const fmt    = bi.formats?.map(f=>`${f.name}${f.descriptions?.length?` (${f.descriptions.join(', ')})`:''}`).join(' · ')||'';
+
+  q('modal-cover').innerHTML = bi.cover_image
+    ? `<img src="${bi.cover_image}" alt="${bi.title}" style="width:100%;display:block">`
+    : `<div class="no-cover">💿</div>`;
+
+  q('modal-info').innerHTML = `
+    <div class="modal-title">${bi.title}</div>
+    <div class="modal-artist">${artist}</div>
+    <div class="modal-row">
+      ${bi.year?`<div class="modal-field"><div class="lbl">Año</div><div class="val">${bi.year}</div></div>`:''}
+      ${label?`<div class="modal-field"><div class="lbl">Sello</div><div class="val">${label}</div></div>`:''}
+      ${fmt?`<div class="modal-field"><div class="lbl">Formato</div><div class="val">${fmt}</div></div>`:''}
+    </div>
+    ${bi.genres?.length?`<div style="margin-bottom:10px">${bi.genres.map(g=>`<span class="tag violet" style="margin-right:4px">${g}</span>`).join('')}
+    ${(bi.styles||[]).map(s=>`<span class="tag" style="margin-right:4px">${s}</span>`).join('')}</div>`:''}
+    <div class="modal-actions">
+      <button class="btn-vinyl" onclick="playYT('${esc(artist+' '+bi.title)}','${esc(bi.title)}','${esc(artist)}','💿'); closeModal()">▶ Reproducir en YouTube</button>
+      <a href="https://www.discogs.com/release/${bi.id}" target="_blank"><button class="btn-ghost">Ver en Discogs ↗</button></a>
+    </div>
+    <div class="modal-tracklist" id="modal-tracklist">
+      <div class="loading" style="padding:10px 0"><div class="spinner spinner-vinyl"></div>cargando tracklist…</div>
+    </div>
+  `;
+  q('modal-overlay').classList.add('open');
+  // Fetch full release
+  try {
+    const full = await dg(`/releases/${bi.id}`);
+    const tl   = q('modal-tracklist');
+    if (tl && full.tracklist?.length) {
+      tl.innerHTML = `<h4>Tracklist</h4>${full.tracklist.map(t=>`
+        <div class="modal-track" onclick="playYT('${esc(artist+' '+t.title)}','${esc(t.title)}','${esc(artist)}','💿'); closeModal()">
+          <span class="modal-track-num">${t.position||''}</span>
+          <span>${t.title}</span>
+          ${t.duration?`<span style="margin-left:auto;color:var(--text3);font-size:11px">${t.duration}</span>`:''}
+        </div>`).join('')}`;
+    } else if (tl) tl.innerHTML='';
+  } catch(e) { const tl=q('modal-tracklist'); if(tl) tl.innerHTML=''; }
+}
+
+function closeModal(e) {
+  if (e && e.target !== q('modal-overlay')) return;
+  q('modal-overlay').classList.remove('open');
+}
+
+/* ════════════════════════════════════════
+   DISCOGS — WANTLIST
+════════════════════════════════════════ */
+async function initWantlist() {
+  const body = q('wantlist-body');
+  if (!dgToken) { renderSetup(body); return; }
+  body.innerHTML='<div class="loading"><div class="spinner spinner-vinyl"></div>cargando wantlist…</div>';
+  try {
+    const data = await dg(`/users/${DG_USER}/wants`,{per_page:100,sort:'added',sort_order:'desc'});
+    const wants = data.wants||[];
+    if (!wants.length) { body.innerHTML='<div class="empty"><div class="emo">★</div>Tu wantlist está vacía</div>'; return; }
+    body.innerHTML=`
+      <div class="collection-stats">
+        <div class="cstat"><strong>${(data.pagination?.items||wants.length).toLocaleString()}</strong> en wantlist</div>
+      </div>
+      <div class="want-grid">${wants.map(w=>{
+        const bi = w.basic_information;
+        const artist = bi.artists?.map(a=>a.name.replace(/\s*\(\d+\)/,'')).join(', ')||'';
+        const cover  = bi.cover_image||bi.thumb||'';
+        return `<div class="want-card" onclick="window.open('https://www.discogs.com/release/${bi.id}','_blank')">
+          ${cover?`<img src="${cover}" alt="${bi.title}" loading="lazy">`:'<div style="width:100%;height:100%;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:28px;opacity:.3">💿</div>'}
+          <div class="want-overlay">
+            <div class="want-title">${bi.title}</div>
+            <div class="want-artist">${artist} ${bi.year?'· '+bi.year:''}</div>
+          </div>
+        </div>`;
+      }).join('')}</div>`;
+  } catch(e) {
+    body.innerHTML=`<div class="empty"><div class="emo">⚠️</div>${e.message}</div>`;
+  }
+}
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+loadHome();
+</script>
+</body>
+</html>
