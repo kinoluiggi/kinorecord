@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KinoRecord · La Discoteca</title>
-<meta property="og:title" content="Discoteca · Kinoluiggi">
+<meta property="og:title" content="KinoRecord · La Discoteca">
 <meta property="og:description" content="Discoteca digital personal — miles de álbumes curados, vinilos y estadísticas de escucha.">
 <meta property="og:type" content="website">
-<meta property="og:image" content="https://kinoluiggi.github.io/discoteca/og-image.jpg">
+<meta property="og:image" content="https://kinoluiggi.github.io/kinorecord/og-image.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Discoteca · Kinoluiggi">
-<meta name="twitter:image" content="https://kinoluiggi.github.io/discoteca/og-image.jpg">
+<meta name="twitter:title" content="KinoRecord · La Discoteca">
+<meta name="twitter:image" content="https://kinoluiggi.github.io/kinorecord/og-image.jpg">
 <link rel="icon" href="favicon.ico">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
@@ -336,9 +336,6 @@ input[type=range]::-moz-range-thumb{
   height:3px;transition:height .12s ease}
 @media(max-width:600px){.analizador{display:none}.vol-zona{display:none}}
 </style>
-
-<script data-goatcounter="https://kinoluiggi.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
 
@@ -597,7 +594,7 @@ const CONFIG = {
   // tu dominio en la consola de Google Cloud si quieres blindarla más.
   YOUTUBE_API_KEY: 'AIzaSyBhlbmPq4k5sAuCSXP3SnRaUi546UVdS54',
   // URL de tu Cloudflare Worker de scrobbling (vacío = scrobbling apagado)
-  SCROBBLE_WORKER: 'https://bold-hall-faa1.kinoluiggi.workers.dev/',
+  SCROBBLE_WORKER: '',   // apagado a propósito en este clon
   // repo de GitHub para el modo curador (?editar en la URL)
   GITHUB_REPO: 'kinoluiggi/discoteca'
 };
@@ -607,21 +604,22 @@ let ELIMINADOS = new Set();
 let VINILOS_OVERRIDES = null;
 const $ = id => document.getElementById(id);
 
+/* clon de solo lectura: los datos se leen en vivo del repo principal, este
+   clon nunca tiene archivos JSON propios que mantener */
+const ORIGEN_DATOS = 'https://kinoluiggi.github.io/discoteca/';
+
 async function cargarIndice(){
-  // buscar el índice en discoteca/ o en la raíz del sitio
-  for(const base of ['discoteca/', '']){
-    try{
-      const r = await fetch(base + 'indice.json');
-      if(!r.ok) continue;
+  try{
+    const r = await fetch(ORIGEN_DATOS + 'indice.json');
+    if(r.ok){
       const idx = await r.json();
       MODO_REMOTO = true;
-      BASE = base;
+      BASE = ORIGEN_DATOS;
       INDICE = idx.map(e => ({id:e.id, artista:e.a, album:e.t, año:e.y,
                               portada:e.p, n:e.n, v:e.v, ruta:e.r,
                               generos:e.g||[], pais:e.c||null}));
-      break;
-    }catch(_){ /* probar siguiente ubicación */ }
-  }
+    }
+  }catch(_){ /* sin conexión con el repo principal: cae al catálogo embebido */ }
   if(!MODO_REMOTO){
     INDICE = DATOS_EMBEBIDOS.map(a => ({id:a.id, artista:a.artista,
       album:a.album, año:a.año, portada:a.portada,
@@ -1486,7 +1484,9 @@ async function pedirToken(){
 }
 
 /* ====================== MODO CURADOR (?editar) ====================== */
-const MODO_EDITAR = new URLSearchParams(location.search).has('editar');
+/* clon público de solo lectura: el modo curador queda desactivado a propósito,
+   aunque alguien le ponga ?editar a la URL nunca se activa aquí */
+const MODO_EDITAR = false;
 
 /* candado de scrobbling: por defecto NADIE scrobblea, ni siquiera tú. Se
    activa una sola vez visitando el sitio con ?yo=1 (queda guardado en este
@@ -1931,7 +1931,7 @@ async function cargarOverridesVinilos(){
   try{
     const extra = (typeof MODO_EDITAR !== 'undefined' && MODO_EDITAR)
       ? '?t=' + Date.now() : '';
-    const r = await fetch('vinilos_overrides.json' + extra);
+    const r = await fetch(BASE + 'vinilos_overrides.json' + extra);
     VINILOS_OVERRIDES = r.ok ? await r.json() : {};
   }catch(_){ VINILOS_OVERRIDES = {}; }
   return VINILOS_OVERRIDES;
@@ -2583,7 +2583,7 @@ async function initNovedades(){
   const st = $('novedades-status');
   st.textContent = 'CARGANDO...';
   try{
-    const r = await fetch('novedades.json?t=' + Date.now());
+    const r = await fetch(BASE + 'novedades.json?t=' + Date.now());
     NOVEDADES = r.ok ? await r.json() : [];
   }catch(_){ NOVEDADES = []; }
   st.textContent = NOVEDADES.length ? `${NOVEDADES.length} DESCARGAS` : '';
