@@ -1114,6 +1114,10 @@ const PAISES_US = ['EE.UU.','EE','Arlington','Austin','Berkeley','Boston','Brook
   'Seattle','St. Louis','Waukegan','Yuma'];
 const PAISES_UK = ['Reino Unido','England','Scotland','Wales','Northern Ireland','London','Brighton',
   'Cambridge','Chester','Sheffield','Sunderland',"Bishop's Stortford",'Abingdon-on-Thames','Gedding'];
+const PAISES_AFRICA = ['Senegal','Mali','Malí','Ghana','Nigeria','Congo','Democratic Republic of the Congo',
+  'Camerún','Kenia','Benín','Burkina Faso','Cabo Verde','Costa de Marfil','Egipto','Etiopía','Gambia',
+  'Guinea','Marruecos','Sudáfrica','Túnez','Argelia','Dakar','Bamako','Abidjan','Algiers','Tunis'];
+const PAISES_ARABE = ['Marruecos','Argelia','Túnez','Egipto','Líbano','Algiers','Tunis'];
 
 /* temas para el radio: cada uno combina género, país y/o década.
    Para agregar uno nuevo, solo hace falta una línea más aquí — no hace
@@ -1167,7 +1171,13 @@ const TEMAS = [
                           const n = normalizar(e.artista + ' ' + e.album);
                           const genJazz = (e.generos||[]).some(g=>g.toLowerCase().includes('jazz'));
                           return n.includes('flamenco') && (n.includes('jazz') || genJazz);
-                        }}
+                        }},
+  {id:'clasica',        nombre:'🎼 Música Clásica',
+                        generos:['Classical']},
+  {id:'africa',         nombre:'🌍 África',
+                        paises: PAISES_AFRICA},
+  {id:'arabe',          nombre:'🕌 Música Árabe',
+                        paises: PAISES_ARABE}
 ];
 function pintarSelectorTemas(){
   const sel = $('sel-tema');
